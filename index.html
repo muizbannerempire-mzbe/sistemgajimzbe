@@ -327,17 +327,29 @@
     import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Firebase Initialization
-    const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : {};
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
+    // Firebase Configuration Validation
+    let isCloudEnabled = false;
+    let app, auth, db, appId;
+
+    try {
+        if (typeof window.__firebase_config !== 'undefined' && window.__firebase_config) {
+            const firebaseConfig = JSON.parse(window.__firebase_config);
+            if (Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
+                isCloudEnabled = true;
+            }
+        }
+    } catch (e) {
+        console.warn("Ralat permulaan Firebase:", e);
+    }
     
     let firebaseUser = null;
     let unsubscribeSnapshot = null;
 
-    // Employee Data Structure (Title Case except for name rendering later)
+    // Employee Data Structure 
     const EMPLOYEES = [
       { code: 'MZBE092022', name: 'Ammar Zakwan Bin Daud', dept: 'Operasi', position: 'Pengurus Order Luar' },
       { code: 'MZBE072022', name: 'Nur Maisarah Binti Ahmad Rizal', dept: 'Operasi', position: 'Pengurus Shopee' },
@@ -360,8 +372,23 @@
     let deleteTarget = null;
     let isDataLoaded = false;
 
-    // Authenticate with Firebase
+    function fallbackToMemoryMode(errorMsg = "Sistem berjalan dalam Mod Memori sementara.") {
+        isCloudEnabled = false;
+        isDataLoaded = true;
+        document.getElementById('loading-records').classList.add('hidden');
+        document.getElementById('cloud-status').classList.remove('bg-emerald-400');
+        document.getElementById('cloud-status').classList.add('bg-red-400');
+        document.getElementById('cloud-status').title = "Mod Memori (Tiada Sambungan Awan)";
+        if(errorMsg) showToast(errorMsg, "error");
+        sortAndApplyData();
+    }
+
+    // Authenticate with Firebase (With Error Handling)
     const initAuth = async () => {
+      if (!isCloudEnabled) {
+          fallbackToMemoryMode(null);
+          return;
+      }
       try {
         if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
           await signInWithCustomToken(auth, window.__initial_auth_token);
@@ -369,25 +396,27 @@
           await signInAnonymously(auth);
         }
       } catch (error) {
-        console.error("Firebase Auth Error:", error);
-        showToast("Ralat sistem, tidak dapat menyambung ke pangkalan data.", "error");
+        console.warn("Ralat Log Masuk Awan (Beralih ke Memori):", error);
+        fallbackToMemoryMode("Ralat sambungan. Sistem berfungsi dalam Mod Memori.");
       }
     };
 
-    onAuthStateChanged(auth, (user) => {
-      firebaseUser = user;
-      if (user) {
-        document.getElementById('cloud-status').classList.remove('bg-red-400');
-        document.getElementById('cloud-status').classList.add('bg-emerald-400');
-        document.getElementById('cloud-status').title = "Bersambung ke Awan";
-        setupRealtimeListener();
-      } else {
-        document.getElementById('cloud-status').classList.remove('bg-emerald-400');
-        document.getElementById('cloud-status').classList.add('bg-red-400');
-        document.getElementById('cloud-status').title = "Terputus dari Awan";
-        if (unsubscribeSnapshot) unsubscribeSnapshot();
-      }
-    });
+    if (isCloudEnabled) {
+        onAuthStateChanged(auth, (user) => {
+          firebaseUser = user;
+          if (user) {
+            document.getElementById('cloud-status').classList.remove('bg-red-400');
+            document.getElementById('cloud-status').classList.add('bg-emerald-400');
+            document.getElementById('cloud-status').title = "Bersambung ke Awan";
+            setupRealtimeListener();
+          } else {
+            document.getElementById('cloud-status').classList.remove('bg-emerald-400');
+            document.getElementById('cloud-status').classList.add('bg-red-400');
+            document.getElementById('cloud-status').title = "Terputus dari Awan";
+            if (unsubscribeSnapshot) unsubscribeSnapshot();
+          }
+        });
+    }
 
     // Start App Initialization
     window.onload = () => {
@@ -397,7 +426,7 @@
 
     // Listen for Realtime Updates from Firestore
     function setupRealtimeListener() {
-      if (!firebaseUser) return;
+      if (!firebaseUser || !isCloudEnabled) return;
       
       const recordsRef = collection(db, 'artifacts', appId, 'public', 'data', 'salary_records');
       
@@ -412,8 +441,7 @@
         sortAndApplyData();
       }, (error) => {
         console.error("Firestore Error:", error);
-        showToast('Ralat memuat turun data awan.', 'error');
-        document.getElementById('loading-records').classList.add('hidden');
+        fallbackToMemoryMode("Gagal memuat turun data awan.");
       });
     }
 
@@ -440,9 +468,15 @@
     }
 
     function sortAndApplyData() {
+      // PENTING: Perlindungan Null Check ditambah di sini
       allRecords.sort((a, b) => {
-        if (b.year !== a.year) return b.year - a.year;
-        return b.month - a.month;
+        const yearA = a?.year || 0;
+        const yearB = b?.year || 0;
+        const monthA = a?.month || 0;
+        const monthB = b?.month || 0;
+        
+        if (yearB !== yearA) return yearB - yearA;
+        return monthB - monthA;
       });
       applyFilters();
     }
@@ -454,21 +488,16 @@
       
       if (pwdInput.type === 'password') {
         pwdInput.type = 'text';
-        // Tukar ke ikon Eye-Off (tutup mata)
         eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />`;
       } else {
         pwdInput.type = 'password';
-        // Tukar ke ikon Eye (buka mata)
         eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
       }
     };
 
-    // --- Window Expose Functions for HTML bindings ---
-
     window.handleLogin = function() {
-      // Tolerasikan huruf kecil/besar untuk Username dengan .toUpperCase()
       const username = document.getElementById('login-username').value.trim().toUpperCase();
-      const password = document.getElementById('login-password').value; // Password mestilah TEPAT
+      const password = document.getElementById('login-password').value;
       const errorEl = document.getElementById('login-error');
 
       if (username === 'ADMIN' && password === 'admin123') {
@@ -478,8 +507,6 @@
         return;
       }
 
-      // Check for employee (Username boleh huruf kecil/besar, tapi password digalakkan tepat huruf besar/kecil)
-      // Demi memudahkan pekerja, kita biarkan password match secara TEPAT ikut data (iaitu MZBE huruf besar)
       const employee = EMPLOYEES.find(e => e.code === username && e.code === password);
       if (employee) {
         currentUser = { ...employee, isAdmin: false };
@@ -506,7 +533,6 @@
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('dashboard').classList.remove('hidden');
       
-      // HANYA NAMA PEKERJA HURUF BESAR
       document.getElementById('user-display').textContent = currentUser.name.toUpperCase();
       document.getElementById('role-display').textContent = isAdmin ? 'Pentadbir' : (currentUser.position || '');
       
@@ -531,6 +557,9 @@
       const month = document.getElementById('filter-month').value;
 
       filteredRecords = allRecords.filter(r => {
+        // PENTING: Perlindungan Null Check
+        if (!r || !r.employee_code) return false;
+        
         if (!isAdmin && r.employee_code !== currentUser.code) return false;
         if (year && r.year != year) return false;
         if (month && r.month != month) return false;
@@ -563,13 +592,15 @@
       noRecords.classList.add('hidden');
       
       container.innerHTML = filteredRecords.map(record => {
+        if(!record) return ''; // Perlindungan keselamatan tambahan
+        
         const totalAllowance = (record.allowance || 0) + (record.oil_allowance || 0);
         const otAmount = (record.ot_hours || 0) * (record.ot_rate || 10);
         const grossIncome = (record.basic_salary || 0) + totalAllowance + otAmount + (record.bonus || 0);
         
-        // PENTING: Bayaran pendahuluan tidak ditolak dari Gaji Bersih berdasarkan permintaan
+        // Advance Payment ditolak dari Gaji Bersih
         const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0);
-        const netSalary = grossIncome - totalDeductions;
+        const netSalary = grossIncome - totalDeductions - (record.advance_payment || 0);
         
         const emp = EMPLOYEES.find(e => e.code === record.employee_code) || {};
 
@@ -577,11 +608,11 @@
           <div class="bg-white rounded-2xl card-shadow p-6 animate-fade border border-slate-100 transition-all hover:shadow-xl hover:-translate-y-1">
             <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
               <div>
-                <h3 class="text-xl font-bold text-slate-800 tracking-wide">${MONTHS[record.month]} ${record.year}</h3>
-                ${isAdmin ? `<p class="text-sm font-bold text-amber-600 mt-1">${(emp.name || record.employee_name).toUpperCase()}</p>` : ''}
+                <h3 class="text-xl font-bold text-slate-800 tracking-wide">${MONTHS[record.month || 0]} ${record.year || ''}</h3>
+                ${isAdmin ? `<p class="text-sm font-bold text-amber-600 mt-1">${(emp.name || record.employee_name || 'Tidak Diketahui').toUpperCase()}</p>` : ''}
                 <p class="text-xs text-slate-500 font-medium mt-1 flex items-center gap-2">
-                  <span class="bg-slate-100 px-2 py-1 rounded-md">${emp.dept || record.department}</span>
-                  <span class="bg-slate-100 px-2 py-1 rounded-md">${emp.position || record.position}</span>
+                  <span class="bg-slate-100 px-2 py-1 rounded-md">${emp.dept || record.department || ''}</span>
+                  <span class="bg-slate-100 px-2 py-1 rounded-md">${emp.position || record.position || ''}</span>
                 </p>
               </div>
               <div class="flex items-center gap-2">
@@ -696,10 +727,8 @@
       document.getElementById('modal-form').classList.add('hidden');
     };
 
-    // Save Data to Firestore
+    // Save Data
     window.saveRecord = async function() {
-      if (!firebaseUser) return;
-      
       const empCode = document.getElementById('form-employee').value;
       if (!empCode) {
         showToast('Sila pilih pekerja', 'error');
@@ -710,7 +739,6 @@
       const editId = document.getElementById('edit-id').value;
       const btnSave = document.getElementById('btn-save');
 
-      // Preserve existing IC Number during edits
       let icNumber = '';
       if (editId) {
           const existingRec = allRecords.find(r => r.__backendId === editId);
@@ -719,9 +747,10 @@
           }
       }
 
+      const recordId = editId || crypto.randomUUID();
       const recordData = {
         employee_code: empCode,
-        employee_name: emp.name, // Nama disimpan format asal, kita upper case masa papar
+        employee_name: emp.name, 
         department: emp.dept,
         position: emp.position,
         ic_number: icNumber,
@@ -747,28 +776,42 @@
           recordData.created_at = new Date().toISOString();
       }
 
-      const recordId = editId || crypto.randomUUID();
-      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', recordId);
-
       btnSave.disabled = true;
       btnSave.innerHTML = `<div class="loader" style="border-width:2px;width:16px;height:16px;"></div> Menyimpan...`;
 
-      try {
-        await setDoc(docRef, recordData, { merge: true });
-        showToast(editId ? 'Rekod dikemaskini ke awan' : 'Rekod ditambah ke awan', 'success');
-        closeModal();
-      } catch (error) {
-        console.error("Save Error:", error);
-        showToast("Gagal menyimpan data: " + error.message, "error");
-      } finally {
-        btnSave.disabled = false;
-        btnSave.innerHTML = `Simpan`;
+      if (isCloudEnabled && firebaseUser) {
+          try {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', recordId);
+            await setDoc(docRef, recordData, { merge: true });
+            showToast(editId ? 'Rekod dikemaskini ke awan' : 'Rekod ditambah ke awan', 'success');
+            closeModal();
+          } catch (error) {
+            console.error("Save Error:", error);
+            showToast("Gagal menyimpan data: " + error.message, "error");
+          } finally {
+            btnSave.disabled = false;
+            btnSave.innerHTML = `Simpan`;
+          }
+      } else {
+          // Memori Mode
+          setTimeout(() => {
+              if (editId) {
+                  const idx = allRecords.findIndex(r => r.__backendId === editId);
+                  if (idx > -1) allRecords[idx] = { ...recordData, __backendId: editId };
+              } else {
+                  allRecords.push({ ...recordData, __backendId: recordId });
+              }
+              showToast(editId ? 'Rekod dikemaskini (Memori)' : 'Rekod ditambah (Memori)', 'success');
+              closeModal();
+              sortAndApplyData();
+              btnSave.disabled = false;
+              btnSave.innerHTML = `Simpan`;
+          }, 400);
       }
     };
 
     // Import Feb 2026 Data
     window.importFeb2026Data = async function() {
-        if (!firebaseUser) return;
         const btn = document.getElementById('btn-import');
         btn.disabled = true;
         btn.innerHTML = `<div class="loader" style="border-width:2px;width:14px;height:14px;"></div> Memuat Naik...`;
@@ -814,24 +857,30 @@
                 };
                 
                 const recordId = `feb2026_${data.employee_code}`;
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', recordId);
-                await setDoc(docRef, recordData, { merge: true });
+                
+                if (isCloudEnabled && firebaseUser) {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', recordId);
+                    await setDoc(docRef, recordData, { merge: true });
+                } else {
+                    const idx = allRecords.findIndex(r => r.__backendId === recordId);
+                    if (idx > -1) allRecords[idx] = { ...recordData, __backendId: recordId };
+                    else allRecords.push({ ...recordData, __backendId: recordId });
+                }
             }
-            showToast('Data Feb 2026 berjaya diimport ke awan!', 'success');
+            showToast(isCloudEnabled ? 'Data Feb 2026 berjaya diimport ke awan!' : 'Data Feb 2026 diimport ke Memori!', 'success');
         } catch (error) {
             console.error(error);
             showToast('Ralat import: ' + error.message, 'error');
         } finally {
             btn.disabled = false;
             btn.innerHTML = `📥 Import Data Feb 2026`;
-            
             document.getElementById('filter-year').value = '2026';
             document.getElementById('filter-month').value = '2';
             window.applyFilters();
         }
     };
 
-    // Delete Operations with Firestore
+    // Delete Operations
     window.openDeleteModal = function(id) {
       deleteTarget = id;
       document.getElementById('modal-delete').classList.remove('hidden');
@@ -843,28 +892,38 @@
     };
 
     window.confirmDelete = async function() {
-      if (!firebaseUser || !deleteTarget) return;
+      if (!deleteTarget) return;
 
       const btnDel = document.getElementById('btn-confirm-delete');
-      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', deleteTarget);
-
       btnDel.disabled = true;
       btnDel.innerHTML = `<div class="loader" style="border-width:2px;width:14px;height:14px;"></div> Memadam...`;
 
-      try {
-          await deleteDoc(docRef);
-          showToast('Rekod berjaya dipadam', 'success');
-          closeDeleteModal();
-      } catch (error) {
-          console.error("Delete Error:", error);
-          showToast('Gagal memadam data.', 'error');
-      } finally {
-          btnDel.disabled = false;
-          btnDel.innerHTML = `Padam`;
+      if (isCloudEnabled && firebaseUser) {
+          try {
+              const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', deleteTarget);
+              await deleteDoc(docRef);
+              showToast('Rekod berjaya dipadam', 'success');
+              closeDeleteModal();
+          } catch (error) {
+              console.error("Delete Error:", error);
+              showToast('Gagal memadam data.', 'error');
+          } finally {
+              btnDel.disabled = false;
+              btnDel.innerHTML = `Padam`;
+          }
+      } else {
+          setTimeout(() => {
+              allRecords = allRecords.filter(r => r.__backendId !== deleteTarget);
+              showToast('Rekod berjaya dipadam (Memori)', 'success');
+              closeDeleteModal();
+              sortAndApplyData();
+              btnDel.disabled = false;
+              btnDel.innerHTML = `Padam`;
+          }, 400);
       }
     };
 
-    // IC Modal Functions with Firestore
+    // IC Modal Functions
     window.openICModal = function() {
       const userRecords = allRecords.filter(r => r.employee_code === currentUser.code);
       const existingIC = userRecords.length > 0 ? userRecords[0].ic_number : '';
@@ -877,8 +936,6 @@
     };
 
     window.saveIC = async function() {
-      if(!firebaseUser) return;
-      
       const newIC = document.getElementById('form-ic').value.trim();
       const userRecords = allRecords.filter(r => r.employee_code === currentUser.code);
 
@@ -891,30 +948,45 @@
       btnSave.disabled = true;
       btnSave.innerHTML = `<div class="loader" style="border-width:2px;width:14px;height:14px;"></div> Menyimpan...`;
 
-      try {
-          for(const record of userRecords) {
-              const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', record.__backendId);
-              await setDoc(docRef, { ic_number: newIC }, { merge: true });
+      if (isCloudEnabled && firebaseUser) {
+          try {
+              for(const record of userRecords) {
+                  const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', record.__backendId);
+                  await setDoc(docRef, { ic_number: newIC }, { merge: true });
+              }
+              showToast('No. KP berjaya dikemaskini ke awan', 'success');
+              closeICModal();
+          } catch(error) {
+              console.error("Update IC Error:", error);
+              showToast("Gagal mengemaskini no KP.", "error");
+          } finally {
+              btnSave.disabled = false;
+              btnSave.innerHTML = `Simpan`;
           }
-          showToast('No. KP berjaya dikemaskini ke awan', 'success');
-          closeICModal();
-      } catch(error) {
-          console.error("Update IC Error:", error);
-          showToast("Gagal mengemaskini no KP.", "error");
-      } finally {
-          btnSave.disabled = false;
-          btnSave.innerHTML = `Simpan`;
+      } else {
+          setTimeout(() => {
+              allRecords = allRecords.map(r => {
+                  if(r.employee_code === currentUser.code) return { ...r, ic_number: newIC };
+                  return r;
+              });
+              showToast('No. KP dikemaskini (Memori)', 'success');
+              closeICModal();
+              btnSave.disabled = false;
+              btnSave.innerHTML = `Simpan`;
+          }, 400);
       }
     };
 
     // HTML Generate Slip Gaji
     function generateSlipHTML(record) {
+      if (!record) return ''; // Perlindungan keselamatan
+      
       const emp = EMPLOYEES.find(e => e.code === record.employee_code) || {};
       const totalAllowance = (record.allowance || 0) + (record.oil_allowance || 0);
       const otAmount = (record.ot_hours || 0) * (record.ot_rate || 10);
       const grossIncome = (record.basic_salary || 0) + totalAllowance + otAmount + (record.bonus || 0);
       
-      const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0);
+      const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0) + (record.advance_payment || 0);
       const netSalary = grossIncome - totalDeductions;
 
       return `
@@ -922,7 +994,7 @@
         <html>
         <head>
           <meta charset="UTF-8">
-          <title>Slip Gaji - ${MONTHS[record.month]} ${record.year}</title>
+          <title>Slip Gaji - ${MONTHS[record.month || 0]} ${record.year || ''}</title>
           <style>
             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #1e293b; }
             .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #f59e0b; padding-bottom: 25px; }
@@ -954,25 +1026,25 @@
               <img src="logo.png" alt="MUIZ BANNER EMPIRE LOGO" onerror="this.style.display='none'">
             </div>
             <div class="company-name">Muiz Banner Empire</div>
-            <div class="slip-title">Slip Gaji - ${MONTHS[record.month]} ${record.year}</div>
+            <div class="slip-title">Slip Gaji - ${MONTHS[record.month || 0]} ${record.year || ''}</div>
           </div>
 
           <div class="info-grid">
             <div class="info-box">
               <div class="info-label">Nama Pekerja</div>
-              <div class="info-value" style="text-transform: uppercase;">${(emp.name || record.employee_name)}</div>
+              <div class="info-value" style="text-transform: uppercase;">${(emp.name || record.employee_name || 'TIDAK DIKETAHUI')}</div>
             </div>
             <div class="info-box">
               <div class="info-label">Kod Pekerja</div>
-              <div class="info-value">${record.employee_code}</div>
+              <div class="info-value">${record.employee_code || ''}</div>
             </div>
             <div class="info-box">
               <div class="info-label">Jabatan</div>
-              <div class="info-value">${(emp.dept || record.department)}</div>
+              <div class="info-value">${(emp.dept || record.department || '')}</div>
             </div>
             <div class="info-box">
               <div class="info-label">Jawatan</div>
-              <div class="info-value">${(emp.position || record.position)}</div>
+              <div class="info-value">${(emp.position || record.position || '')}</div>
             </div>
             ${record.ic_number ? `
             <div class="info-box" style="grid-column: span 2;">
@@ -989,7 +1061,6 @@
             ${record.oil_allowance > 0 ? `<div class="row"><span class="row-label">Elaun Minyak</span><span class="row-value">RM ${(record.oil_allowance || 0).toFixed(2)}</span></div>` : ''}
             ${record.ot_hours > 0 ? `<div class="row"><span class="row-label">OT (${record.ot_hours || 0} jam × RM${(record.ot_rate || 10).toFixed(2)})</span><span class="row-value">RM ${otAmount.toFixed(2)}</span></div>` : ''}
             ${record.bonus > 0 ? `<div class="row"><span class="row-label">Bonus</span><span class="row-value">RM ${(record.bonus || 0).toFixed(2)}</span></div>` : ''}
-            ${record.advance_payment > 0 ? `<div class="row"><span class="row-label">Bayaran Pendahuluan</span><span class="row-value highlight">-RM ${(record.advance_payment || 0).toFixed(2)}</span></div>` : ''}
             <div class="row" style="font-weight: 800; border-top: 2px solid #cbd5e1; padding-top: 15px; margin-top: 5px;"><span class="row-label" style="color:#0f172a">Jumlah Pendapatan</span><span class="row-value highlight-green">RM ${grossIncome.toFixed(2)}</span></div>
           </div>
 
@@ -1002,6 +1073,7 @@
             ${record.unpaid_leave_days > 0 ? `
             <div class="row"><span class="row-label">Cuti Tanpa Gaji (${record.unpaid_leave_days} hari)</span><span class="row-value">RM ${(record.unpaid_leave_deduction || 0).toFixed(2)}</span></div>
             ` : ''}
+            ${record.advance_payment > 0 ? `<div class="row"><span class="row-label">Bayaran Pendahuluan</span><span class="row-value highlight">RM ${(record.advance_payment || 0).toFixed(2)}</span></div>` : ''}
             <div class="row" style="font-weight: 800; border-top: 2px solid #cbd5e1; padding-top: 15px; margin-top: 5px;"><span class="row-label" style="color:#0f172a">Jumlah Potongan</span><span class="row-value highlight">RM ${totalDeductions.toFixed(2)}</span></div>
           </div>
 
@@ -1034,14 +1106,14 @@
 
     window.downloadSlip = function(id) {
       const record = allRecords.find(r => r.__backendId === id);
-      if (!record) return;
+      if (!record || !record.employee_code) return; // Perlindungan keselamatan
 
       const slipHTML = generateSlipHTML(record);
       const blob = new Blob([slipHTML], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Slip_Gaji_${record.employee_code}_${MONTHS[record.month]}_${record.year}.html`;
+      a.download = `Slip_Gaji_${record.employee_code.toUpperCase()}_${MONTHS[record.month || 0]}_${record.year || ''}.html`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
