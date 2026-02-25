@@ -38,7 +38,7 @@
           <!-- Logo -->
           <img src="logo.png" alt="Muiz Banner Empire Logo" class="mx-auto h-24 w-auto object-contain mb-4 drop-shadow-md" onerror="this.src='https://placehold.co/400x150/ffffff/1e3a5f?text=MUIZ+BANNER+EMPIRE'">
           <h1 class="text-xl font-bold text-slate-800 mt-2">Muiz Banner Empire</h1>
-          <p class="text-slate-500 text-sm mt-1 font-medium tracking-wide">Sistem Pengurusan Gaji (Cloud)</p>
+          <p class="text-slate-500 text-sm mt-1 font-medium tracking-wide">Sistem Pengurusan Gaji</p>
         </div>
         <div id="login-form">
           <div class="mb-4">
@@ -49,10 +49,8 @@
             <label class="block text-sm font-semibold text-slate-700 mb-2">Kata Laluan</label>
             <div class="relative">
               <input type="password" id="login-password" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:outline-none transition pr-12" placeholder="Masukkan kata laluan">
-              <!-- Show Password Toggle Button -->
               <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-amber-600 transition" title="Papar Kata Laluan">
                 <svg id="eye-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <!-- Default: Eye Open -->
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
@@ -77,7 +75,7 @@
                 <img src="logo.png" alt="Logo" class="h-10 w-auto object-contain" onerror="this.style.display='none'">
             </div>
             <div>
-              <h1 class="font-bold text-lg flex items-center gap-2">Muiz Banner Empire <span id="cloud-status" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" title="Bersambung ke Awan"></span></h1>
+              <h1 class="font-bold text-lg flex items-center gap-2">Muiz Banner Empire <span id="cloud-status" class="w-2 h-2 rounded-full bg-slate-400" title="Menyambung ke Awan"></span></h1>
               <p class="text-xs text-slate-300">Sistem Pengurusan Gaji</p>
             </div>
           </div>
@@ -121,7 +119,6 @@
               </select>
             </div>
             <div id="admin-actions" class="hidden ml-auto flex gap-3">
-              <button id="btn-import" onclick="importFeb2026Data()" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold text-sm rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-md flex items-center justify-center gap-2"> 📥 Import Data Feb 2026 </button>
               <button onclick="openAddModal()" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold text-sm rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition shadow-md"> ➕ Tambah Rekod </button>
             </div>
           </div>
@@ -287,7 +284,7 @@
           </svg>
         </div>
         <h3 class="text-xl font-bold text-slate-800 mb-2">Padam Rekod?</h3>
-        <p class="text-slate-500 text-sm mb-8">Rekod gaji ini akan dipadam dari storan awan secara kekal.</p>
+        <p class="text-slate-500 text-sm mb-8">Rekod gaji ini akan dipadam secara kekal.</p>
         <div class="flex gap-4 justify-center">
           <button onclick="closeDeleteModal()" class="px-6 py-2.5 bg-slate-100 text-slate-600 font-semibold rounded-lg hover:bg-slate-200 transition w-full">Batal</button>
           <button id="btn-confirm-delete" onclick="confirmDelete()" class="px-6 py-2.5 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition shadow-md flex items-center justify-center gap-2 w-full">Padam</button>
@@ -322,34 +319,35 @@
   </div>
 
   <script type="module">
-    // Firebase Imports
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // Firebase Configuration Validation
+    const firebaseConfig = {
+      apiKey: "AIzaSyAd_sBPBJ4Zru0gbX8dCD9FxJ4Qc0Dt7-Q",
+      authDomain: "sistemgajimuiz.firebaseapp.com",
+      projectId: "sistemgajimuiz",
+      storageBucket: "sistemgajimuiz.firebasestorage.app",
+      messagingSenderId: "971845171525",
+      appId: "1:971845171525:web:a4ba8a5848d2262dac262c"
+    };
+
     let isCloudEnabled = false;
-    let app, auth, db, appId;
+    let app, auth, db;
 
     try {
-        if (typeof window.__firebase_config !== 'undefined' && window.__firebase_config) {
-            const firebaseConfig = JSON.parse(window.__firebase_config);
-            if (Object.keys(firebaseConfig).length > 0) {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
-                isCloudEnabled = true;
-            }
-        }
+        app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        db = getFirestore(app);
+        isCloudEnabled = true;
     } catch (e) {
         console.warn("Ralat permulaan Firebase:", e);
     }
-    
+
     let firebaseUser = null;
     let unsubscribeSnapshot = null;
 
-    // Employee Data Structure 
+    // Employee Data Structure
     const EMPLOYEES = [
       { code: 'MZBE092022', name: 'Ammar Zakwan Bin Daud', dept: 'Operasi', position: 'Pengurus Order Luar' },
       { code: 'MZBE072022', name: 'Nur Maisarah Binti Ahmad Rizal', dept: 'Operasi', position: 'Pengurus Shopee' },
@@ -364,15 +362,28 @@
 
     const MONTHS = ['', 'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
 
+    // DATA TERBINA (Hardcoded) UNTUK FEBRUARI 2026
+    const DEFAULT_RECORDS = [
+        { __backendId: 'rec_01', employee_code: 'MZBE012024', employee_name: 'Ahmad Bukharie Bin Faizal Norhadi', department: 'Pengeluaran', position: 'Operator Mesin', month: 2, year: 2026, basic_salary: 1800, advance_payment: 700, kwsp: 198, ic_number: '040421110053' },
+        { __backendId: 'rec_02', employee_code: 'MZBE092022', employee_name: 'Ammar Zakwan Bin Daud', department: 'Operasi', position: 'Pengurus Order Luar', month: 2, year: 2026, basic_salary: 2100, advance_payment: 800, kwsp: 231, ic_number: '980416036979' },
+        { __backendId: 'rec_03', employee_code: 'MZBE102022', employee_name: 'Athirah Binti Mohd Zein', department: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', month: 2, year: 2026, basic_salary: 2000, advance_payment: 800, kwsp: 220, ic_number: '000917110384' },
+        { __backendId: 'rec_04', employee_code: 'MZBE072022', employee_name: 'Nur Maisarah Binti Ahmad Rizal', department: 'Operasi', position: 'Pengurus Shopee', month: 2, year: 2026, basic_salary: 2300, advance_payment: 1000, kwsp: 253, ic_number: '971017385034' },
+        { __backendId: 'rec_05', employee_code: 'MZBE022024', employee_name: 'Nurlaili Binti Zahari', department: 'Pengeluaran', position: 'Operator Mesin', month: 2, year: 2026, basic_salary: 1800, advance_payment: 0, kwsp: 198, ic_number: '' },
+        { __backendId: 'rec_06', employee_code: 'MZBE082022', employee_name: 'Wan Adib Ashraf Bin Ab Wahab', department: 'Operasi', position: 'Pengurus TikTok', month: 2, year: 2026, basic_salary: 2300, advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, ic_number: '000417080975' },
+        { __backendId: 'rec_07', employee_code: 'MZBE022025', employee_name: 'Abdul Rahman Bin S.Hamid', department: 'Pengeluaran', position: 'Operator Mesin', month: 2, year: 2026, basic_salary: 1700, advance_payment: 700, kwsp: 187, ic_number: '070909030855' },
+        { __backendId: 'rec_08', employee_code: 'MZBE032025', employee_name: 'Muhammad Aiman Bin Mohd Zulkifli', department: 'Pengeluaran', position: 'Operator Mesin', month: 2, year: 2026, basic_salary: 1700, advance_payment: 700, kwsp: 187, ic_number: '010815110403' },
+        { __backendId: 'rec_09', employee_code: 'MZBE042025', employee_name: 'Fatin Amiera Binti Raziha', department: 'Pemasaran', position: 'Pegawai Pemasaran', month: 2, year: 2026, basic_salary: 1700, advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, ic_number: '930905115074' }
+    ];
+
     // App State
     let currentUser = null;
     let isAdmin = false;
-    let allRecords = [];
+    let allRecords = [...DEFAULT_RECORDS];
     let filteredRecords = [];
     let deleteTarget = null;
     let isDataLoaded = false;
 
-    function fallbackToMemoryMode(errorMsg = "Sistem berjalan dalam Mod Memori sementara.") {
+    function fallbackToMemoryMode(errorMsg) {
         isCloudEnabled = false;
         isDataLoaded = true;
         document.getElementById('loading-records').classList.add('hidden');
@@ -383,21 +394,16 @@
         sortAndApplyData();
     }
 
-    // Authenticate with Firebase (With Error Handling)
     const initAuth = async () => {
       if (!isCloudEnabled) {
           fallbackToMemoryMode(null);
           return;
       }
       try {
-        if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
-          await signInWithCustomToken(auth, window.__initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
+        await signInAnonymously(auth);
       } catch (error) {
-        console.warn("Ralat Log Masuk Awan (Beralih ke Memori):", error);
-        fallbackToMemoryMode("Ralat sambungan. Sistem berfungsi dalam Mod Memori.");
+        console.warn("Ralat Log Masuk Awan:", error);
+        fallbackToMemoryMode("Awan disekat. Sila hidupkan 'Anonymous' Auth di Firebase > Build > Authentication.");
       }
     };
 
@@ -405,12 +411,12 @@
         onAuthStateChanged(auth, (user) => {
           firebaseUser = user;
           if (user) {
-            document.getElementById('cloud-status').classList.remove('bg-red-400');
+            document.getElementById('cloud-status').classList.remove('bg-slate-400', 'bg-red-400');
             document.getElementById('cloud-status').classList.add('bg-emerald-400');
             document.getElementById('cloud-status').title = "Bersambung ke Awan";
             setupRealtimeListener();
           } else {
-            document.getElementById('cloud-status').classList.remove('bg-emerald-400');
+            document.getElementById('cloud-status').classList.remove('bg-emerald-400', 'bg-slate-400');
             document.getElementById('cloud-status').classList.add('bg-red-400');
             document.getElementById('cloud-status').title = "Terputus dari Awan";
             if (unsubscribeSnapshot) unsubscribeSnapshot();
@@ -424,11 +430,10 @@
       initAuth();
     };
 
-    // Listen for Realtime Updates from Firestore
     function setupRealtimeListener() {
       if (!firebaseUser || !isCloudEnabled) return;
       
-      const recordsRef = collection(db, 'artifacts', appId, 'public', 'data', 'salary_records');
+      const recordsRef = collection(db, 'artifacts', 'sistemgajimzbe', 'public', 'data', 'salary_records');
       
       unsubscribeSnapshot = onSnapshot(recordsRef, (snapshot) => {
         allRecords = [];
@@ -441,7 +446,7 @@
         sortAndApplyData();
       }, (error) => {
         console.error("Firestore Error:", error);
-        fallbackToMemoryMode("Gagal memuat turun data awan.");
+        fallbackToMemoryMode("Gagal memuat turun data awan. Pastikan Rules adalah Test Mode.");
       });
     }
 
@@ -457,7 +462,6 @@
       }
       formYearSelect.value = currentYear;
       
-      // Default to Feb 2026 filters
       document.getElementById('filter-year').value = '2026';
       document.getElementById('filter-month').value = '2';
 
@@ -468,7 +472,6 @@
     }
 
     function sortAndApplyData() {
-      // PENTING: Perlindungan Null Check ditambah di sini
       allRecords.sort((a, b) => {
         const yearA = a?.year || 0;
         const yearB = b?.year || 0;
@@ -544,23 +547,29 @@
         document.getElementById('btn-update-ic').classList.remove('hidden');
       }
 
-      if(!isDataLoaded) {
-          document.getElementById('loading-records').classList.remove('hidden');
-      }
-
-      applyFilters();
+      sortAndApplyData();
     }
 
     window.applyFilters = applyFilters;
     function applyFilters() {
+      // PERLINDUNGAN UTAMA: Jika pengguna belum berjaya log masuk, hentikan penapisan
+      if (!currentUser) {
+          filteredRecords = [];
+          renderSalaryList();
+          return;
+      }
+
       const year = document.getElementById('filter-year').value;
       const month = document.getElementById('filter-month').value;
 
       filteredRecords = allRecords.filter(r => {
-        // PENTING: Perlindungan Null Check
         if (!r || !r.employee_code) return false;
         
-        if (!isAdmin && r.employee_code !== currentUser.code) return false;
+        if (!isAdmin) {
+            if (!currentUser || !currentUser.code) return false;
+            if (r.employee_code.toUpperCase() !== currentUser.code.toUpperCase()) return false;
+        }
+        
         if (year && r.year != year) return false;
         if (month && r.month != month) return false;
         return true;
@@ -592,17 +601,16 @@
       noRecords.classList.add('hidden');
       
       container.innerHTML = filteredRecords.map(record => {
-        if(!record) return ''; // Perlindungan keselamatan tambahan
+        if(!record) return '';
         
         const totalAllowance = (record.allowance || 0) + (record.oil_allowance || 0);
         const otAmount = (record.ot_hours || 0) * (record.ot_rate || 10);
         const grossIncome = (record.basic_salary || 0) + totalAllowance + otAmount + (record.bonus || 0);
         
-        // Advance Payment ditolak dari Gaji Bersih
         const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0);
         const netSalary = grossIncome - totalDeductions - (record.advance_payment || 0);
         
-        const emp = EMPLOYEES.find(e => e.code === record.employee_code) || {};
+        const emp = EMPLOYEES.find(e => e.code.toUpperCase() === record.employee_code.toUpperCase()) || {};
 
         return `
           <div class="bg-white rounded-2xl card-shadow p-6 animate-fade border border-slate-100 transition-all hover:shadow-xl hover:-translate-y-1">
@@ -781,7 +789,7 @@
 
       if (isCloudEnabled && firebaseUser) {
           try {
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', recordId);
+            const docRef = doc(db, 'artifacts', 'sistemgajimzbe', 'public', 'data', 'salary_records', recordId);
             await setDoc(docRef, recordData, { merge: true });
             showToast(editId ? 'Rekod dikemaskini ke awan' : 'Rekod ditambah ke awan', 'success');
             closeModal();
@@ -793,7 +801,6 @@
             btnSave.innerHTML = `Simpan`;
           }
       } else {
-          // Memori Mode
           setTimeout(() => {
               if (editId) {
                   const idx = allRecords.findIndex(r => r.__backendId === editId);
@@ -808,76 +815,6 @@
               btnSave.innerHTML = `Simpan`;
           }, 400);
       }
-    };
-
-    // Import Feb 2026 Data
-    window.importFeb2026Data = async function() {
-        const btn = document.getElementById('btn-import');
-        btn.disabled = true;
-        btn.innerHTML = `<div class="loader" style="border-width:2px;width:14px;height:14px;"></div> Memuat Naik...`;
-
-        const febData = [
-            { employee_code: 'MZBE012024', basic_salary: 1800, advance_payment: 700, kwsp: 198, ic_number: '040421110053' },
-            { employee_code: 'MZBE092022', basic_salary: 2100, advance_payment: 800, kwsp: 231, ic_number: '980416036979' },
-            { employee_code: 'MZBE102022', basic_salary: 2000, advance_payment: 800, kwsp: 220, ic_number: '000917110384' },
-            { employee_code: 'MZBE072022', basic_salary: 2300, advance_payment: 1000, kwsp: 253, ic_number: '971017385034' },
-            { employee_code: 'MZBE022024', basic_salary: 1800, advance_payment: 0, kwsp: 198, ic_number: '' },
-            { employee_code: 'MZBE082022', basic_salary: 2300, advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, ic_number: '000417080975' },
-            { employee_code: 'MZBE022025', basic_salary: 1700, advance_payment: 700, kwsp: 187, ic_number: '070909030855' },
-            { employee_code: 'MZBE032025', basic_salary: 1700, advance_payment: 700, kwsp: 187, ic_number: '010815110403' },
-            { employee_code: 'MZBE042025', basic_salary: 1700, advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, ic_number: '930905115074' }
-        ];
-
-        try {
-            for (const data of febData) {
-                const emp = EMPLOYEES.find(e => e.code === data.employee_code) || {};
-                const recordData = {
-                    employee_code: data.employee_code,
-                    employee_name: emp.name || '',
-                    department: emp.dept || '',
-                    position: emp.position || '',
-                    ic_number: data.ic_number || '',
-                    month: 2,
-                    year: 2026,
-                    basic_salary: data.basic_salary || 0,
-                    allowance: 0,
-                    oil_allowance: 0,
-                    ot_hours: 0,
-                    ot_rate: 10,
-                    bonus: 0,
-                    advance_payment: data.advance_payment || 0,
-                    unpaid_leave_days: data.unpaid_leave_days || 0,
-                    unpaid_leave_deduction: data.unpaid_leave_deduction || 0,
-                    kwsp: data.kwsp || 0,
-                    socso: 0,
-                    eis: 0,
-                    other_deductions: 0,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-                
-                const recordId = `feb2026_${data.employee_code}`;
-                
-                if (isCloudEnabled && firebaseUser) {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', recordId);
-                    await setDoc(docRef, recordData, { merge: true });
-                } else {
-                    const idx = allRecords.findIndex(r => r.__backendId === recordId);
-                    if (idx > -1) allRecords[idx] = { ...recordData, __backendId: recordId };
-                    else allRecords.push({ ...recordData, __backendId: recordId });
-                }
-            }
-            showToast(isCloudEnabled ? 'Data Feb 2026 berjaya diimport ke awan!' : 'Data Feb 2026 diimport ke Memori!', 'success');
-        } catch (error) {
-            console.error(error);
-            showToast('Ralat import: ' + error.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = `📥 Import Data Feb 2026`;
-            document.getElementById('filter-year').value = '2026';
-            document.getElementById('filter-month').value = '2';
-            window.applyFilters();
-        }
     };
 
     // Delete Operations
@@ -900,7 +837,7 @@
 
       if (isCloudEnabled && firebaseUser) {
           try {
-              const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', deleteTarget);
+              const docRef = doc(db, 'artifacts', 'sistemgajimzbe', 'public', 'data', 'salary_records', deleteTarget);
               await deleteDoc(docRef);
               showToast('Rekod berjaya dipadam', 'success');
               closeDeleteModal();
@@ -951,7 +888,7 @@
       if (isCloudEnabled && firebaseUser) {
           try {
               for(const record of userRecords) {
-                  const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', record.__backendId);
+                  const docRef = doc(db, 'artifacts', 'sistemgajimzbe', 'public', 'data', 'salary_records', record.__backendId);
                   await setDoc(docRef, { ic_number: newIC }, { merge: true });
               }
               showToast('No. KP berjaya dikemaskini ke awan', 'success');
@@ -979,9 +916,9 @@
 
     // HTML Generate Slip Gaji
     function generateSlipHTML(record) {
-      if (!record) return ''; // Perlindungan keselamatan
+      if (!record) return ''; 
       
-      const emp = EMPLOYEES.find(e => e.code === record.employee_code) || {};
+      const emp = EMPLOYEES.find(e => e.code.toUpperCase() === record.employee_code.toUpperCase()) || {};
       const totalAllowance = (record.allowance || 0) + (record.oil_allowance || 0);
       const otAmount = (record.ot_hours || 0) * (record.ot_rate || 10);
       const grossIncome = (record.basic_salary || 0) + totalAllowance + otAmount + (record.bonus || 0);
@@ -1101,12 +1038,12 @@
       printWindow.document.write(slipHTML);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500); // Masa tambahan untuk logo dimuatkan sebelum cetak
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500); 
     };
 
     window.downloadSlip = function(id) {
       const record = allRecords.find(r => r.__backendId === id);
-      if (!record || !record.employee_code) return; // Perlindungan keselamatan
+      if (!record || !record.employee_code) return; 
 
       const slipHTML = generateSlipHTML(record);
       const blob = new Blob([slipHTML], { type: 'text/html' });
