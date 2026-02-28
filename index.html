@@ -113,7 +113,7 @@
               <div id="admin-actions" class="hidden ml-auto flex gap-3">
                 <button onclick="openReportModal()" class="px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-800 text-white font-semibold text-sm rounded-lg hover:from-slate-800 hover:to-slate-900 transition shadow-md flex items-center gap-2"> 📊 Analisa Gaji </button>
                 <button id="btn-import-pukal" onclick="importGajiBulanSemasa()" class="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold text-sm rounded-lg hover:from-blue-600 hover:to-blue-700 transition shadow-md flex items-center justify-center gap-2"> 📥 Isi Gaji Pukal </button>
-                <button onclick="openNewEmployeeModal()" class="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold text-sm rounded-lg hover:from-purple-600 hover:to-purple-700 transition shadow-md"> 👥 Pekerja Baru </button>
+                <button onclick="openManageEmployeesModal()" class="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold text-sm rounded-lg hover:from-purple-600 hover:to-purple-700 transition shadow-md"> 👥 Urus Pekerja </button>
                 <button onclick="openAddModal()" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold text-sm rounded-lg hover:from-emerald-600 hover:to-emerald-700 transition shadow-md"> ➕ Tambah Gaji </button>
               </div>
             </div>
@@ -141,7 +141,7 @@
 
     </div>
 
-    <!-- MODAL: ADD SALARY & ADD EMPLOYEE & DELETE & IC -->
+    <!-- MODAL: ADD/EDIT SALARY -->
     <div id="modal-form" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90%] overflow-auto animate-fade card-shadow">
           <div class="sticky top-0 bg-white px-6 py-5 border-b flex items-center justify-between z-10 shadow-sm"><h2 id="modal-title" class="text-xl font-bold text-slate-800">Tambah Rekod Gaji</h2><button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition">✕</button></div>
@@ -191,16 +191,40 @@
         </div>
     </div>
     
-    <div id="modal-new-employee" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <!-- MODAL: MANAGE EMPLOYEES (LIST) -->
+    <div id="modal-manage-employees" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl w-full max-w-3xl max-h-[90%] overflow-auto animate-fade card-shadow flex flex-col">
+            <div class="sticky top-0 bg-white px-6 py-5 border-b flex items-center justify-between z-10 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-800">👥 Urus Senarai Pekerja</h2>
+                <div class="flex gap-2">
+                    <button onclick="openEmployeeForm()" class="px-4 py-1.5 bg-purple-600 text-white text-sm font-bold rounded-lg hover:bg-purple-700 shadow-md transition">+ Tambah Baru</button>
+                    <button onclick="closeManageEmployeesModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition flex justify-center items-center">✕</button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto rounded-xl border border-slate-100 shadow-sm">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b border-slate-100">
+                            <tr><th class="py-3 px-4">Kod Pekerja</th><th class="py-3 px-4">Nama Penuh</th><th class="py-3 px-4">Jabatan</th><th class="py-3 px-4 text-center">Tindakan</th></tr>
+                        </thead>
+                        <tbody id="manage-emp-tbody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / EDIT EMPLOYEE FORM -->
+    <div id="modal-employee-form" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-60">
         <div class="bg-white rounded-2xl w-full max-w-md p-6 card-shadow animate-fade">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
-                <h2 class="text-xl font-bold text-slate-800">Tambah Pekerja Baru</h2>
-                <button onclick="closeNewEmployeeModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition">✕</button>
+                <h2 id="emp-form-title" class="text-xl font-bold text-slate-800">Tambah Pekerja Baru</h2>
+                <button onclick="closeEmployeeForm()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold transition">✕</button>
             </div>
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Kod Pekerja (Username)</label>
-                    <input type="text" id="new-emp-code" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-purple-500 focus:outline-none rounded-lg uppercase" placeholder="Contoh: MZBE052026">
+                    <input type="text" id="new-emp-code" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-purple-500 focus:outline-none rounded-lg uppercase font-mono" placeholder="Contoh: MZBE052026">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-1">Nama Penuh</label>
@@ -216,12 +240,13 @@
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6 pt-4 border-t border-slate-100">
-                <button onclick="closeNewEmployeeModal()" class="px-4 py-2 bg-slate-100 text-slate-600 font-semibold rounded-lg hover:bg-slate-200 transition">Batal</button>
-                <button id="btn-save-emp" onclick="saveNewEmployee()" class="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-purple-700 shadow-md transition flex items-center justify-center gap-2">Simpan Pekerja</button>
+                <button onclick="closeEmployeeForm()" class="px-4 py-2 bg-slate-100 text-slate-600 font-semibold rounded-lg hover:bg-slate-200 transition">Batal</button>
+                <button id="btn-save-emp" onclick="saveEmployee()" class="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-purple-700 shadow-md transition flex items-center justify-center gap-2">Simpan</button>
             </div>
         </div>
     </div>
 
+    <!-- MODAL: DELETE CONFIRMATION -->
     <div id="modal-delete" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-3xl w-full max-w-sm animate-fade p-8 text-center card-shadow">
             <div class="w-20 h-20 mx-auto mb-5 bg-red-100 rounded-full flex items-center justify-center shadow-inner">
@@ -238,6 +263,7 @@
         </div>
     </div>
 
+    <!-- MODAL: UPDATE IC -->
     <div id="modal-ic" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-2xl p-6 max-w-sm w-full animate-fade card-shadow">
             <div class="flex justify-between items-center mb-4 border-b pb-2">
@@ -268,19 +294,19 @@
                 <!-- Summary Cards Row 1 (Anggaran & Gaji Bersih) -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                        <p class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Anggaran Asas Sebulan</p>
+                        <p class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Anggaran Sebulan (Asas+KWSP)</p>
                         <p id="rep-est-month" class="text-2xl font-black text-slate-800">RM 0.00</p>
-                        <p class="text-[10px] text-slate-400 mt-1">Gaji asas profil pekerja terkini</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Gaji asas + KWSP dari profil pekerja</p>
                     </div>
                     <div class="bg-white p-5 rounded-xl border border-slate-100 shadow-sm">
-                        <p class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Anggaran Asas Setahun</p>
+                        <p class="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Anggaran Setahun</p>
                         <p id="rep-est-year" class="text-2xl font-black text-blue-600">RM 0.00</p>
-                        <p class="text-[10px] text-slate-400 mt-1">Unjuran gaji asas x 12 bulan</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Unjuran sebulan x 12 bulan</p>
                     </div>
                     <div class="bg-white p-5 rounded-xl border border-emerald-100 shadow-sm bg-emerald-50/30">
-                        <p class="text-xs font-bold text-emerald-600 mb-1 uppercase tracking-wider">Gaji Bersih (Sebenar Setahun)</p>
+                        <p class="text-xs font-bold text-emerald-600 mb-1 uppercase tracking-wider">Jumlah Keseluruhan (Setahun)</p>
                         <p id="rep-act-year" class="text-2xl font-black text-emerald-700">RM 0.00</p>
-                        <p class="text-[10px] text-emerald-500 mt-1">Wang tunai yang telah keluar bayar gaji</p>
+                        <p class="text-[10px] text-emerald-500 mt-1">Total perbelanjaan syarikat (Gaji+KWSP+OT+Elaun)</p>
                     </div>
                 </div>
 
@@ -317,7 +343,7 @@
                                     <th class="px-3 py-3 font-bold text-right text-purple-600">OT</th>
                                     <th class="px-3 py-3 font-bold text-right text-rose-600">KWSP</th>
                                     <th class="px-3 py-3 font-bold text-right text-red-500">Pot. Lain</th>
-                                    <th class="px-4 py-3 font-bold text-right text-emerald-600">Bersih Sebenar</th>
+                                    <th class="px-4 py-3 font-bold text-right text-emerald-600">J. Keseluruhan</th>
                                 </tr>
                             </thead>
                             <tbody id="report-tbody" class="divide-y divide-slate-100">
@@ -373,22 +399,24 @@
     ];
 
     let customEmployees = []; let EMPLOYEES = [...BASE_EMPLOYEES];
+    
+    // DEFAULT_RECORDS ini digunakan SEBAGAI TEMPLATE apabila Admin klik "Isi Gaji Pukal" untuk bulan yang baharu.
     const DEFAULT_RECORDS = [
-        { __backendId: 'rec_01', employee_code: 'MZBE012024', employee_name: 'Ahmad Bukharie Bin Faizal Norhadi', department: 'Pengeluaran', position: 'Operator Mesin', month: 2, year: 2026, basic_salary: 1800, advance_payment: 700, kwsp: 198, ic_number: '040421110053' },
-        { __backendId: 'rec_02', employee_code: 'MZBE092022', employee_name: 'Ammar Zakwan Bin Daud', department: 'Operasi', position: 'Pengurus Order Luar', month: 2, year: 2026, basic_salary: 2100, advance_payment: 800, kwsp: 231, ic_number: '980416036979' },
-        { __backendId: 'rec_03', employee_code: 'MZBE102022', employee_name: 'Athirah Binti Mohd Zein', department: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', month: 2, year: 2026, basic_salary: 2000, advance_payment: 800, kwsp: 220, ic_number: '000917110384' },
-        { __backendId: 'rec_04', employee_code: 'MZBE072022', employee_name: 'Nur Maisarah Binti Ahmad Rizal', department: 'Operasi', position: 'Pengurus Shopee', month: 2, year: 2026, basic_salary: 2300, advance_payment: 1000, kwsp: 253, ic_number: '971017385034' },
-        { __backendId: 'rec_05', employee_code: 'MZBE022024', employee_name: 'Nurlaili Binti Zahari', department: 'Pengeluaran', position: 'Operator Mesin', month: 2, year: 2026, basic_salary: 1800, advance_payment: 0, kwsp: 198, ic_number: '' },
-        { __backendId: 'rec_06', employee_code: 'MZBE082022', employee_name: 'Wan Adib Ashraf Bin Ab Wahab', department: 'Operasi', position: 'Pengurus TikTok', month: 2, year: 2026, basic_salary: 2300, advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, ic_number: '000417080975' },
-        { __backendId: 'rec_07', employee_code: 'MZBE022025', employee_name: 'Abdul Rahmad Bin S. Hamid', department: 'Pengeluaran', position: 'Operator Mesin', month: 2, year: 2026, basic_salary: 1700, advance_payment: 700, kwsp: 187, ic_number: '070909030855' },
-        { __backendId: 'rec_08', employee_code: 'MZBE032025', employee_name: 'Muhammad Aiman Bin Mohd Zulkifli', department: 'Pengeluaran', position: 'Operator Mesin', month: 2, year: 2026, basic_salary: 1700, advance_payment: 700, kwsp: 187, ic_number: '010815110403' },
-        { __backendId: 'rec_09', employee_code: 'MZBE042025', employee_name: 'Fatin Amiera Binti Raziha', department: 'Pemasaran', position: 'Pegawai Pemasaran', month: 2, year: 2026, basic_salary: 1700, advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, ic_number: '930905115074' },
-        { __backendId: 'rec_10', employee_code: 'MZBEBOSS001', employee_name: 'Muizzuddin Bin Ab.llah', department: 'Pentadbiran', position: 'Pengurus Besar', month: 2, year: 2026, basic_salary: 3500, advance_payment: 0, kwsp: 352, unpaid_leave_days: 0, unpaid_leave_deduction: 0, ic_number: '990331037699' }
+        { employee_code: 'MZBE012024', employee_name: 'Ahmad Bukharie Bin Faizal Norhadi', department: 'Pengeluaran', position: 'Operator Mesin', basic_salary: 1800, kwsp: 198, ic_number: '040421110053' },
+        { employee_code: 'MZBE092022', employee_name: 'Ammar Zakwan Bin Daud', department: 'Operasi', position: 'Pengurus Order Luar', basic_salary: 2100, kwsp: 231, ic_number: '980416036979' },
+        { employee_code: 'MZBE102022', employee_name: 'Athirah Binti Mohd Zein', department: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', basic_salary: 2000, kwsp: 220, ic_number: '000917110384' },
+        { employee_code: 'MZBE072022', employee_name: 'Nur Maisarah Binti Ahmad Rizal', department: 'Operasi', position: 'Pengurus Shopee', basic_salary: 2300, kwsp: 253, ic_number: '971017385034' },
+        { employee_code: 'MZBE022024', employee_name: 'Nurlaili Binti Zahari', department: 'Pengeluaran', position: 'Operator Mesin', basic_salary: 1800, kwsp: 198, ic_number: '' },
+        { employee_code: 'MZBE082022', employee_name: 'Wan Adib Ashraf Bin Ab Wahab', department: 'Operasi', position: 'Pengurus TikTok', basic_salary: 2300, kwsp: 253, ic_number: '000417080975' },
+        { employee_code: 'MZBE022025', employee_name: 'Abdul Rahmad Bin S. Hamid', department: 'Pengeluaran', position: 'Operator Mesin', basic_salary: 1700, kwsp: 187, ic_number: '070909030855' },
+        { employee_code: 'MZBE032025', employee_name: 'Muhammad Aiman Bin Mohd Zulkifli', department: 'Pengeluaran', position: 'Operator Mesin', basic_salary: 1700, kwsp: 187, ic_number: '010815110403' },
+        { employee_code: 'MZBE042025', employee_name: 'Fatin Amiera Binti Raziha', department: 'Pemasaran', position: 'Pegawai Pemasaran', basic_salary: 1700, kwsp: 187, ic_number: '930905115074' },
+        { employee_code: 'MZBEBOSS001', employee_name: 'Muizzuddin Bin Ab.llah', department: 'Pentadbiran', position: 'Pengurus Besar', basic_salary: 3500, kwsp: 352, ic_number: '990331037699' }
     ];
     const MONTHS = ['', 'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
 
     let currentUser = null; let isAdmin = false; 
-    let allRecords = [...DEFAULT_RECORDS]; let filteredRecords = [];
+    let allRecords = []; let filteredRecords = [];
     let deleteTarget = null; let isDataLoaded = false;
 
     function fallbackToMemoryMode(errorMsg) {
@@ -428,7 +456,27 @@
       
       // Salary Listener
       unsubscribeSnapshot = onSnapshot(collection(...baseArgs, 'salary_records'), (snapshot) => {
-        allRecords = []; snapshot.forEach(doc => allRecords.push({ ...doc.data(), __backendId: doc.id }));
+        let rawRecords = []; 
+        snapshot.forEach(doc => rawRecords.push({ ...doc.data(), __backendId: doc.id }));
+        
+        // --- SISTEM AUTO-CLEAN (HALANG REKOD DOUBLE) ---
+        let uniqueMap = new Map();
+        rawRecords.forEach(rec => {
+            const key = `${rec.year}_${rec.month}_${rec.employee_code}`;
+            if (!uniqueMap.has(key)) {
+                uniqueMap.set(key, rec);
+            } else {
+                // Jika jumpa pekerja yang sama pada bulan/tahun yang sama, ambil yang paling latest
+                const exist = uniqueMap.get(key);
+                const t1 = rec.updated_at ? new Date(rec.updated_at).getTime() : 0;
+                const t2 = exist.updated_at ? new Date(exist.updated_at).getTime() : 0;
+                if (t1 > t2) uniqueMap.set(key, rec);
+            }
+        });
+        
+        allRecords = Array.from(uniqueMap.values());
+        // -----------------------------------------------
+
         isDataLoaded = true; document.getElementById('loading-records').classList.add('hidden');
         sortAndApplyData();
       }, (error) => {
@@ -619,6 +667,78 @@
       }).join('');
     }
 
+    // --- MANAGE EMPLOYEES LOGIC ---
+    window.openManageEmployeesModal = function() {
+        const tbody = document.getElementById('manage-emp-tbody');
+        tbody.innerHTML = EMPLOYEES.map(emp => `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="py-3 px-4 font-mono text-slate-600">${emp.code}</td>
+                <td class="py-3 px-4 font-bold text-slate-800">${emp.name.toUpperCase()}</td>
+                <td class="py-3 px-4 text-slate-500">${emp.dept}</td>
+                <td class="py-3 px-4 text-center">
+                    <button onclick="openEmployeeForm('${emp.code}')" class="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 text-xs font-bold transition shadow-sm">Edit Pekerja</button>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('modal-manage-employees').classList.remove('hidden');
+    };
+    window.closeManageEmployeesModal = function() { 
+        document.getElementById('modal-manage-employees').classList.add('hidden'); 
+    };
+
+    window.openEmployeeForm = function(code = null) {
+        document.getElementById('modal-manage-employees').classList.add('hidden'); 
+        const isEdit = !!code;
+        document.getElementById('emp-form-title').textContent = isEdit ? "Kemaskini Pekerja" : "Tambah Pekerja Baru";
+        
+        const codeInput = document.getElementById('new-emp-code');
+        if(isEdit) {
+            const emp = EMPLOYEES.find(e => e.code === code);
+            codeInput.value = emp.code;
+            codeInput.disabled = true; // Tidak benarkan ubah kod/username
+            codeInput.classList.add('bg-slate-100', 'cursor-not-allowed');
+            document.getElementById('new-emp-name').value = emp.name;
+            document.getElementById('new-emp-dept').value = emp.dept;
+            document.getElementById('new-emp-position').value = emp.position;
+        } else {
+            codeInput.value = '';
+            codeInput.disabled = false;
+            codeInput.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            document.getElementById('new-emp-name').value = '';
+            document.getElementById('new-emp-dept').value = '';
+            document.getElementById('new-emp-position').value = '';
+        }
+        document.getElementById('modal-employee-form').classList.remove('hidden');
+    };
+    
+    window.closeEmployeeForm = function() { 
+        document.getElementById('modal-employee-form').classList.add('hidden'); 
+        openManageEmployeesModal(); // Kembali ke senarai
+    };
+
+    window.saveEmployee = async function() {
+      const code = document.getElementById('new-emp-code').value.trim().toUpperCase(); const name = document.getElementById('new-emp-name').value.trim();
+      const dept = document.getElementById('new-emp-dept').value.trim(); const position = document.getElementById('new-emp-position').value.trim();
+      if (!code || !name) return showToast('Sila masukkan Kod dan Nama Pekerja', 'error');
+
+      const btn = document.getElementById('btn-save-emp'); btn.disabled = true; btn.innerHTML = `<div class="loader" style="border-width:2px;width:14px;height:14px;"></div> Menyimpan...`;
+      const newEmp = { code, name, dept, position, updated_at: new Date().toISOString() };
+
+      if (isCloudEnabled && firebaseUser) {
+        try {
+          await setDoc(doc(db, 'artifacts', 'sistemgajimzbe', 'public', 'data', 'employees', code), newEmp, { merge: true });
+          showToast('Rekod Pekerja Berjaya Disimpan!', 'success'); 
+          closeEmployeeForm();
+        } catch (error) { showToast('Ralat: ' + error.message, 'error'); }
+      } else {
+        customEmployees.push(newEmp); const empMap = new Map(); BASE_EMPLOYEES.forEach(e => empMap.set(e.code, e));
+        customEmployees.forEach(e => empMap.set(e.code, e)); EMPLOYEES = Array.from(empMap.values());
+        renderEmployeeDropdown(); showToast('Pekerja disimpan! (Memori)', 'success'); 
+        closeEmployeeForm();
+      }
+      btn.disabled = false; btn.innerText = 'Simpan Pekerja';
+    };
+
     // Modal Operations (Salary)
     window.openAddModal = function() {
       document.getElementById('modal-title').textContent = 'Tambah Rekod Gaji';
@@ -642,34 +762,6 @@
       document.getElementById('modal-form').classList.remove('hidden');
     };
     window.closeModal = function() { document.getElementById('modal-form').classList.add('hidden'); };
-
-    // Modal Operations (New Employee)
-    window.openNewEmployeeModal = function() {
-      document.getElementById('new-emp-code').value = ''; document.getElementById('new-emp-name').value = '';
-      document.getElementById('new-emp-dept').value = ''; document.getElementById('new-emp-position').value = '';
-      document.getElementById('modal-new-employee').classList.remove('hidden');
-    };
-    window.closeNewEmployeeModal = function() { document.getElementById('modal-new-employee').classList.add('hidden'); };
-    window.saveNewEmployee = async function() {
-      const code = document.getElementById('new-emp-code').value.trim().toUpperCase(); const name = document.getElementById('new-emp-name').value.trim();
-      const dept = document.getElementById('new-emp-dept').value.trim(); const position = document.getElementById('new-emp-position').value.trim();
-      if (!code || !name) return showToast('Sila masukkan Kod dan Nama Pekerja', 'error');
-
-      const btn = document.getElementById('btn-save-emp'); btn.disabled = true; btn.innerHTML = `<div class="loader" style="border-width:2px;width:14px;height:14px;"></div> Menyimpan...`;
-      const newEmp = { code, name, dept, position, created_at: new Date().toISOString() };
-
-      if (isCloudEnabled && firebaseUser) {
-        try {
-          await setDoc(doc(db, 'artifacts', 'sistemgajimzbe', 'public', 'data', 'employees', code), newEmp, { merge: true });
-          showToast('Pekerja baru berjaya ditambah!', 'success'); closeNewEmployeeModal();
-        } catch (error) { showToast('Ralat: ' + error.message, 'error'); }
-      } else {
-        customEmployees.push(newEmp); const empMap = new Map(); BASE_EMPLOYEES.forEach(e => empMap.set(e.code, e));
-        customEmployees.forEach(e => empMap.set(e.code, e)); EMPLOYEES = Array.from(empMap.values());
-        renderEmployeeDropdown(); showToast('Pekerja baru ditambah! (Memori)', 'success'); closeNewEmployeeModal();
-      }
-      btn.disabled = false; btn.innerText = 'Simpan Pekerja';
-    };
 
     window.saveRecord = async function() {
       const empCode = document.getElementById('form-employee').value; if (!empCode) return showToast('Sila pilih pekerja', 'error');
@@ -722,17 +814,12 @@
         try {
             for (const data of DEFAULT_RECORDS) {
                 const emp = EMPLOYEES.find(e => e.code === data.employee_code) || {};
-                
-                // Gunakan ID unik untuk setiap pekerja mengikut bulan & tahun supaya data tersusun dan tidak bertindih
                 const newId = `rec_${data.employee_code}_${selectedYear}_${selectedMonth}`;
                 
                 const recordData = { 
                     ...data, 
-                    month: parseInt(selectedMonth),
-                    year: parseInt(selectedYear),
-                    advance_payment: 0, // Di-reset kepada 0 untuk bulan baru
-                    unpaid_leave_days: 0, // Di-reset kepada 0 untuk bulan baru
-                    unpaid_leave_deduction: 0, // Di-reset kepada 0 untuk bulan baru
+                    month: parseInt(selectedMonth), year: parseInt(selectedYear),
+                    advance_payment: 0, unpaid_leave_days: 0, unpaid_leave_deduction: 0, // Reset
                     employee_name: emp.name || data.employee_name || '', 
                     department: emp.dept || data.department || '', 
                     position: emp.position || data.position || '', 
@@ -743,19 +830,12 @@
                     await setDoc(doc(db, 'artifacts', 'sistemgajimzbe', 'public', 'data', 'salary_records', newId), recordData, { merge: true }); 
                 } else { 
                     const idx = allRecords.findIndex(r => r.__backendId === newId); 
-                    if (idx > -1) allRecords[idx] = { ...recordData, __backendId: newId }; 
-                    else allRecords.push({ ...recordData, __backendId: newId }); 
+                    if (idx > -1) allRecords[idx] = { ...recordData, __backendId: newId }; else allRecords.push({ ...recordData, __backendId: newId }); 
                 }
             }
             showToast(`Gaji Pukal diisi untuk ${MONTHS[selectedMonth]} ${selectedYear}!`, 'success');
-        } catch (error) { 
-            showToast('Ralat import: ' + error.message, 'error'); 
-            console.error(error);
-        } finally { 
-            btn.disabled = false; 
-            btn.innerHTML = `📥 Isi Gaji Pukal`; 
-            applyFilters(); 
-        }
+        } catch (error) { showToast('Ralat import: ' + error.message, 'error'); } 
+        finally { btn.disabled = false; btn.innerHTML = `📥 Isi Gaji Pukal`; applyFilters(); }
     };
 
     window.openDeleteModal = function(id) { deleteTarget = id; document.getElementById('modal-delete').classList.remove('hidden'); };
@@ -871,18 +951,18 @@
     window.renderReportUI = function(year) {
         year = parseInt(year);
         
-        // 1. Pengiraan Anggaran Gaji Asas Sebulan & Setahun
+        // 1. Pengiraan Anggaran Sebulan & Setahun (Gaji Asas + KWSP)
         let estMonthlyBasic = 0;
         EMPLOYEES.forEach(emp => {
             const empRecs = allRecords.filter(r => r.employee_code === emp.code).sort((a,b) => b.year !== a.year ? b.year - a.year : b.month - a.month);
             if(empRecs.length > 0) {
-                estMonthlyBasic += (empRecs[0].basic_salary || 0);
+                estMonthlyBasic += (empRecs[0].basic_salary || 0) + (empRecs[0].kwsp || 0); // Campur Gaji Asas dan KWSP
             }
         });
         const estYearlyBasic = estMonthlyBasic * 12;
 
-        // 2. Pengiraan Gaji Sebenar Terperinci
-        let actualYearlyNet = 0;
+        // 2. Pengiraan Jumlah Perbelanjaan Sebenar Syarikat
+        let actualYearlyTotalSpent = 0;
         let actualYearlyGross = 0;
         let actualYearlyKWSP = 0;
         let actualYearlyOT = 0;
@@ -891,38 +971,39 @@
 
         for(let m = 1; m <= 12; m++) {
             const mRecs = allRecords.filter(r => parseInt(r.year) === year && parseInt(r.month) === m);
-            let mBasic = 0, mAllowance = 0, mOT = 0, mKWSP = 0, mOtherDeduct = 0, mNet = 0;
+            let mBasic = 0, mAllowance = 0, mOT = 0, mKWSP = 0, mOtherDeduct = 0, mTotalSpent = 0;
             
             mRecs.forEach(r => {
                 const basic = (r.basic_salary || 0);
                 const allowance = (r.allowance || 0) + (r.oil_allowance || 0) + (r.bonus || 0);
                 const ot = (r.ot_hours || 0) * (r.ot_rate || 10);
                 const kwsp = (r.kwsp || 0);
-                const otherDeduct = (r.socso || 0) + (r.eis || 0) + (r.other_deductions || 0) + (r.unpaid_leave_deduction || 0) + (r.advance_payment || 0);
-                const gross = basic + allowance + ot;
-                const net = gross - (kwsp + otherDeduct);
+                const otherDeduct = (r.socso || 0) + (r.eis || 0) + (r.other_deductions || 0) + (r.unpaid_leave_deduction || 0);
+                
+                // JUMLAH KESELURUHAN DIBELANJAKAN: Gaji Asas + Elaun + OT + KWSP
+                const totalSpent = basic + allowance + ot + kwsp;
                 
                 mBasic += basic;
                 mAllowance += allowance;
                 mOT += ot;
                 mKWSP += kwsp;
                 mOtherDeduct += otherDeduct;
-                mNet += net;
+                mTotalSpent += totalSpent;
             });
             
             actualYearlyGross += (mBasic + mAllowance + mOT);
-            actualYearlyNet += mNet;
+            actualYearlyTotalSpent += mTotalSpent;
             actualYearlyKWSP += mKWSP;
             actualYearlyOT += mOT;
             actualYearlyAllowance += mAllowance;
 
-            monthlyData.push({ month: m, basic: mBasic, allowance: mAllowance, ot: mOT, kwsp: mKWSP, otherDeduct: mOtherDeduct, net: mNet, count: mRecs.length });
+            monthlyData.push({ month: m, basic: mBasic, allowance: mAllowance, ot: mOT, kwsp: mKWSP, otherDeduct: mOtherDeduct, totalSpent: mTotalSpent, count: mRecs.length });
         }
 
         // 3. Kemaskini UI (Modal)
         document.getElementById('rep-est-month').textContent = `RM ${estMonthlyBasic.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}`;
         document.getElementById('rep-est-year').textContent = `RM ${estYearlyBasic.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}`;
-        document.getElementById('rep-act-year').textContent = `RM ${actualYearlyNet.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}`;
+        document.getElementById('rep-act-year').textContent = `RM ${actualYearlyTotalSpent.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}`;
         
         document.getElementById('rep-gross-year').textContent = `RM ${actualYearlyGross.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}`;
         document.getElementById('rep-elaun-year').textContent = `RM ${actualYearlyAllowance.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}`;
@@ -939,12 +1020,12 @@
                 <td class="px-3 py-3 text-right text-purple-600">RM ${d.ot.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
                 <td class="px-3 py-3 text-right text-rose-600">RM ${d.kwsp.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
                 <td class="px-3 py-3 text-right text-red-500">RM ${d.otherDeduct.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
-                <td class="px-4 py-3 text-right font-bold text-emerald-600">RM ${d.net.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
+                <td class="px-4 py-3 text-right font-bold text-emerald-600">RM ${d.totalSpent.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
             </tr>
         `).join('');
         
         window._currentReportYear = year;
-        window._currentReportData = { estMonthlyBasic, estYearlyBasic, actualYearlyNet, actualYearlyGross, actualYearlyKWSP, actualYearlyOT, actualYearlyAllowance, monthlyData };
+        window._currentReportData = { estMonthlyBasic, estYearlyBasic, actualYearlyTotalSpent, actualYearlyGross, actualYearlyKWSP, actualYearlyOT, actualYearlyAllowance, monthlyData };
     };
 
     function generateReportHTML() {
@@ -961,7 +1042,7 @@
                 <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; color: #9333ea;">RM ${row.ot.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
                 <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; color: #e11d48;">RM ${row.kwsp.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
                 <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; color: #ef4444;">RM ${row.otherDeduct.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold; color: #10b981;">RM ${row.net.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right; font-weight: bold; color: #10b981;">RM ${row.totalSpent.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</td>
             </tr>
         `).join('');
 
@@ -990,9 +1071,9 @@
             </div>
             
             <div class="summary-grid">
-                <div class="box"><div class="box-title">Anggaran Asas (Sebulan)</div><div class="box-value">RM ${d.estMonthlyBasic.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</div></div>
-                <div class="box"><div class="box-title">Anggaran Asas (Setahun)</div><div class="box-value" style="color:#2563eb;">RM ${d.estYearlyBasic.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</div></div>
-                <div class="box" style="background:#ecfdf5; border-color:#d1fae5;"><div class="box-title" style="color:#059669;">Gaji Bersih (Sebenar)</div><div class="box-value" style="color:#10b981;">RM ${d.actualYearlyNet.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</div></div>
+                <div class="box"><div class="box-title">Anggaran Sebulan (Asas+KWSP)</div><div class="box-value">RM ${d.estMonthlyBasic.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</div></div>
+                <div class="box"><div class="box-title">Anggaran Setahun (Asas+KWSP)</div><div class="box-value" style="color:#2563eb;">RM ${d.estYearlyBasic.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</div></div>
+                <div class="box" style="background:#ecfdf5; border-color:#d1fae5;"><div class="box-title" style="color:#059669;">Jumlah Keseluruhan (Setahun)</div><div class="box-value" style="color:#10b981;">RM ${d.actualYearlyTotalSpent.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</div></div>
             </div>
 
             <div class="summary-grid-4">
@@ -1005,7 +1086,7 @@
             <table>
                 <thead><tr>
                     <th>Bulan</th><th style="text-align:center;">Rekod</th><th style="text-align:right;">G. Asas</th><th style="text-align:right;">Elaun/Bonus</th>
-                    <th style="text-align:right;">OT</th><th style="text-align:right;">KWSP</th><th style="text-align:right;">Potongan Lain</th><th style="text-align:right;">Bersih Sebenar</th>
+                    <th style="text-align:right;">OT</th><th style="text-align:right;">KWSP</th><th style="text-align:right;">Potongan Lain</th><th style="text-align:right;">J. Keseluruhan</th>
                 </tr></thead>
                 <tbody>${tableRows}</tbody>
             </table>
