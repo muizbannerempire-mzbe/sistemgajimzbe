@@ -156,7 +156,11 @@
             </div>
             <div class="border-t-2 border-slate-100 pt-5"><h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">💰</span> Pendapatan</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label class="block text-xs font-semibold text-slate-500 mb-1">Gaji Asas (RM)</label><input type="number" id="form-basic" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-amber-500 focus:outline-none rounded-lg" value="0" step="0.01"></div>
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 mb-1">Gaji Asas (RM)</label>
+                  <input type="number" id="form-basic" oninput="calculateUnpaidDeduction()" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-amber-500 focus:outline-none rounded-lg" value="0" step="0.01">
+                  <p id="daily-rate-display" class="text-[10px] text-blue-600 font-bold mt-1 hidden">Gaji Sehari: RM 0.00</p>
+                </div>
                 <div><label class="block text-xs font-semibold text-slate-500 mb-1">Elaun Biasa (RM)</label><input type="number" id="form-allowance" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-amber-500 focus:outline-none rounded-lg" value="0" step="0.01"></div>
                 <div><label class="block text-xs font-semibold text-slate-500 mb-1">Elaun Minyak (RM)</label><input type="number" id="form-oil" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-amber-500 focus:outline-none rounded-lg" value="0" step="0.01"></div>
                 <div><label class="block text-xs font-semibold text-slate-500 mb-1">Bonus (RM)</label><input type="number" id="form-bonus" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-amber-500 focus:outline-none rounded-lg" value="0" step="0.01"></div>
@@ -179,8 +183,8 @@
             </div>
             <div class="border-t-2 border-slate-100 pt-5"><h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">🚫</span> Cuti Tanpa Gaji</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label class="block text-xs font-semibold text-slate-500 mb-1">Hari Cuti Tanpa Gaji</label><input type="number" id="form-unpaid-days" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-amber-500 focus:outline-none rounded-lg bg-slate-50" value="0" min="0"></div>
-                <div><label class="block text-xs font-semibold text-slate-500 mb-1">Potongan Cuti (RM)</label><input type="number" id="form-unpaid-deduction" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-amber-500 focus:outline-none rounded-lg bg-slate-50" value="0" step="0.01"></div>
+                <div><label class="block text-xs font-semibold text-slate-500 mb-1">Hari Cuti Tanpa Gaji</label><input type="number" id="form-unpaid-days" oninput="calculateUnpaidDeduction()" class="w-full px-4 py-2 border-2 border-slate-200 focus:border-amber-500 focus:outline-none rounded-lg bg-slate-50" value="0" min="0"></div>
+                <div><label class="block text-xs font-semibold text-slate-500 mb-1">Potongan Cuti (RM) - Auto</label><input type="number" id="form-unpaid-deduction" class="w-full px-4 py-2 border-2 border-slate-200 rounded-lg bg-slate-100 cursor-not-allowed text-slate-600 font-bold" value="0" step="0.01" readonly title="Dikira automatik: Gaji Sehari x Hari Cuti"></div>
               </div>
             </div>
           </div>
@@ -747,6 +751,7 @@
       const inputs = ['form-basic', 'form-allowance', 'form-oil', 'form-bonus', 'form-advance', 'form-ot-hours', 'form-kwsp', 'form-socso', 'form-eis', 'form-other', 'form-unpaid-days', 'form-unpaid-deduction'];
       inputs.forEach(id => document.getElementById(id).value = 0); document.getElementById('form-ot-rate').value = 10;
       document.getElementById('modal-form').classList.remove('hidden');
+      calculateUnpaidDeduction(); // Papar gaji sehari
     };
     window.openEditModal = function(id) {
       const record = allRecords.find(r => r.__backendId === id); if (!record) return;
@@ -758,9 +763,29 @@
       document.getElementById('form-ot-hours').value = record.ot_hours || 0; document.getElementById('form-ot-rate').value = record.ot_rate || 10;
       document.getElementById('form-kwsp').value = record.kwsp || 0; document.getElementById('form-socso').value = record.socso || 0;
       document.getElementById('form-eis').value = record.eis || 0; document.getElementById('form-other').value = record.other_deductions || 0;
-      document.getElementById('form-unpaid-days').value = record.unpaid_leave_days || 0; document.getElementById('form-unpaid-deduction').value = record.unpaid_leave_deduction || 0;
+      document.getElementById('form-unpaid-days').value = record.unpaid_leave_days || 0; 
       document.getElementById('modal-form').classList.remove('hidden');
+      calculateUnpaidDeduction(); // Papar & auto kira gaji sehari
     };
+
+    // FUNGSI AUTO-KIRA POTONGAN CUTI TANPA GAJI
+    window.calculateUnpaidDeduction = function() {
+        const basic = parseFloat(document.getElementById('form-basic').value) || 0;
+        const days = parseInt(document.getElementById('form-unpaid-days').value) || 0;
+        
+        // Kiraan Gaji Sehari (Asas bahagi 26 hari)
+        const dailyRate = basic / 26;
+        
+        // Paparkan info kepada Admin
+        const dailyDisplay = document.getElementById('daily-rate-display');
+        dailyDisplay.textContent = `Gaji Sehari (RM ${basic} / 26): RM ${dailyRate.toFixed(2)}`;
+        dailyDisplay.classList.remove('hidden');
+
+        // Kemaskini input potongan cuti
+        const deduction = dailyRate * days;
+        document.getElementById('form-unpaid-deduction').value = deduction.toFixed(2);
+    };
+
     window.closeModal = function() { document.getElementById('modal-form').classList.add('hidden'); };
 
     window.saveRecord = async function() {
