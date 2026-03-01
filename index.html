@@ -469,7 +469,7 @@
             tbody.innerHTML = recs.map(a => {
                 let st = !a.isLate ? '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded">On Time</span>' : 
                     `<div><span class="px-2 py-1 bg-rose-100 text-rose-700 text-xs font-bold rounded">Lewat (Denda RM5)</span>
-                    ${a.appealStatus==='Pending'?`<div class="mt-2 flex gap-1"><button onclick="adminAppeal('${a.id}','Approved')" class="px-2 py-1 bg-emerald-500 text-white text-[10px] rounded">LULUS</button><button onclick="adminAppeal('${a.id}','Ditolak')" class="px-2 py-1 bg-rose-500 text-white text-[10px] rounded">TOLAK</button><span class="text-[10px] italic">"${a.appealReason}"</span></div>` : ''}
+                    ${a.appealStatus==='Pending'?`<div class="mt-2 flex gap-1"><button onclick="adminAppeal('${a.id}','Approved')" class="px-2 py-1 bg-emerald-500 text-white text-[10px] rounded">LULUS</button><button onclick="adminAppeal('${a.id}','Ditolak')" class="px-2 py-1 bg-rose-500 text-white text-[10px] rounded">TOLAK</button><span class="text-[10px] italic">\"${a.appealReason}\"</span></div>` : ''}
                     ${a.appealStatus==='Approved'?`<div class="text-[10px] text-emerald-600 font-bold mt-1">Rayuan Diterima (Denda Batal)</div>` : ''}
                     ${a.appealStatus==='Ditolak'?`<div class="text-[10px] text-rose-600 font-bold mt-1">Rayuan Ditolak</div>` : ''}</div>`;
                 
@@ -511,7 +511,7 @@
             const y = document.getElementById('sal-year').value; const m = document.getElementById('sal-month').value;
             const recs = dbSalaries.filter(s => s.year === y && s.month === m);
             const grid = document.getElementById('salary-grid');
-            if(recs.length===0) return grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">Tiada rekod. Tekan "Bina Pukal" untuk auto jana.</div>`;
+            if(recs.length===0) return grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">Tiada rekod. Tekan \"Bina Pukal\" untuk auto jana.</div>`;
             
             grid.innerHTML = recs.map(s => {
                 const g = s.basic + s.allowance + (s.ot_hours*s.ot_rate) + s.bonus;
@@ -677,7 +677,7 @@
         };
 
         window.printReport = () => {
-            const html = `<html><head><title>Laporan</title><style>body{font-family:sans-serif;padding:40px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:10px;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#eee}</style></head><body><center><h2>Laporan Kewangan Gaji MBE (${document.getElementById('sal-year').value})</h2></center>` + document.getElementById('report-summary').innerHTML + '<table>' + document.getElementById('report-tbody').parentElement.innerHTML + '</table></body></html>';
+            const html = `<html><head><title>Laporan</title><style>body{font-family:sans-serif;padding:40px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:10px;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#eee}</style></head><body><center><h2>Laporan Kewangan Gaji MBE (${document.getElementById('sal-year').value})</h2></center>` + document.getElementById('report-summary').innerHTML + '<table>' + document.getElementById('report-tbody').parentElement.innerHTML + '</table></body></html>`;
             const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
         };
     </script>
