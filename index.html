@@ -1,685 +1,856 @@
-<!DOCTYPE html>
-<html lang="ms">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sistem HRMS MBE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; }
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
-        .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3b82f6; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block;}
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-</head>
-<body class="antialiased text-slate-800">
-    <div id="app" class="h-full flex flex-col min-h-screen">
-        
-        <!-- LOGIN SCREEN -->
-        <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
-            <div class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md animate-fade border border-slate-100">
-                <div class="text-center mb-8">
-                    <img src="./logo.png" alt="MBE" class="h-24 mx-auto object-contain mb-3" onerror="this.src='https://placehold.co/100x100/2563eb/ffffff?text=MBE'" />
-                    <h1 class="text-2xl font-black text-slate-800">MUIZ BANNER</h1>
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Sistem Pekerja Pintar</p>
-                </div>
-                <form id="login-form" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Kod Pekerja</label>
-                        <input type="text" id="login-username" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 outline-none uppercase font-bold text-slate-700" placeholder="Cth: MZBE012024" required/>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Kata Laluan</label>
-                        <input type="password" id="login-password" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 outline-none font-bold text-slate-700" placeholder="Masukkan kata laluan" required/>
-                    </div>
-                    <button type="submit" id="btn-login" disabled class="w-full py-3.5 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 disabled:opacity-50 flex justify-center items-center gap-2">
-                        <div class="loader border-white border-t-blue-600 hidden" id="login-loader"></div> 
-                        <span id="login-text">Menyambung ke Awan...</span>
-                    </button>
-                    <p id="login-error" class="text-red-500 text-xs text-center hidden font-bold mt-2"></p>
-                </form>
-            </div>
-        </div>
+import React, { useState, useEffect, useCallback } from 'react';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
 
-        <!-- MAIN DASHBOARD -->
-        <div id="dashboard" class="hidden flex-col flex-1 min-h-screen">
-            <header class="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-4 shadow-lg z-20">
-                <div class="max-w-7xl mx-auto flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="bg-white p-1 rounded-lg"><img src="logo.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'"/></div>
-                        <div><h1 class="font-bold leading-tight flex items-center gap-2">HRMS MBE <span id="cloud-status" class="w-2 h-2 rounded-full bg-slate-500"></span></h1><p id="user-display" class="text-[10px] text-slate-300 font-mono"></p></div>
+// Inisialisasi Firebase
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+let app, db, auth;
+try {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    auth = getAuth(app);
+} catch(e) {
+    console.error("Firebase init failed:", e);
+}
+
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+// --- TETAPAN GPS KEDAI ---
+const SHOP_LAT = 5.76973; 
+const SHOP_LNG = 102.56143; 
+const ALLOWED_RADIUS = 150; 
+
+function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; 
+    const p1 = lat1 * Math.PI/180; 
+    const p2 = lat2 * Math.PI/180; 
+    const dp = (lat2-lat1) * Math.PI/180; 
+    const dl = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+const getTodayString = () => { 
+    const d = new Date(); 
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; 
+};
+
+const formatTimeDisplay = (iso) => {
+    if(!iso) return '--:--'; 
+    const d = new Date(iso);
+    let h = d.getHours(); 
+    let m = d.getMinutes(); 
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12; 
+    m = String(m).padStart(2, '0'); 
+    return `${h}:${m} ${ampm}`;
+};
+
+const MONTHS = ['', 'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+
+// --- IKON TERBINA DALAM ---
+const IconLogOut = ({size=18, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
+const IconClock = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+const IconAlert = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>;
+const IconCheck = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
+const IconMapPin = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
+const IconTrash = ({size=16, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
+const IconSettings = ({size=20, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+const IconChartBar = ({size=20, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>;
+
+function BrandLogo({ size = "large" }) {
+    return (
+        <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-8' : 'mb-0 shrink-0'}`}>
+            <img src="./logo.png" alt="MBE" style={{ height: size === 'large' ? '100px' : '36px', width: 'auto', objectFit: 'contain' }} className={size === 'large' ? 'mb-3' : 'bg-white rounded p-1'} onError={e => { e.target.style.display='none'; }} />
+            {size === 'large' && <div className="text-center"><h1 className="text-2xl font-black text-slate-800">MUIZ BANNER</h1><p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Empire</p></div>}
+        </div>
+    );
+}
+
+function TabBtn({ label, icon, active, onClick }) {
+    return (
+        <button onClick={onClick} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${active ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+            <span>{icon}</span> {label}
+        </button>
+    );
+}
+
+// ==========================================
+// APP COMPONENT
+// ==========================================
+export default function App() {
+    const [firebaseUser, setFirebaseUser] = useState(null);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [activeTab, setActiveTab] = useState('attendance');
+    const [isDbReady, setIsDbReady] = useState(false);
+    const [authError, setAuthError] = useState(null);
+    
+    // DB States
+    const [employees, setEmployees] = useState([]);
+    const [attendances, setAttendances] = useState([]);
+    const [leaves, setLeaves] = useState([]);
+    const [salaries, setSalaries] = useState([]);
+    const [settings, setSettings] = useState({ clockOutTime: '17:00', bypassGps: false });
+    
+    const [toast, setToast] = useState(null);
+
+    const showToast = useCallback((msg, type = 'info') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+    }, []);
+
+    // 1. Initial Auth
+    useEffect(() => {
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.error("Auth error:", err);
+                setAuthError(err.message);
+            }
+        };
+        initAuth();
+
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            setFirebaseUser(user);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    // 2. Fetch Data
+    useEffect(() => {
+        if (!firebaseUser) return;
+        
+        const bPath = ['artifacts', appId, 'public', 'data'];
+        
+        const unsubEmp = onSnapshot(collection(db, ...bPath, 'employees'), snap => {
+            const emps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            if(emps.length === 0) {
+                const defaultEmps = [
+                    { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '040421110053' },
+                    { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', basic: 2100, ic: '980416036979' },
+                    { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', basic: 2000, ic: '000917110384' },
+                    { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', basic: 2300, ic: '971017385034' },
+                    { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '' },
+                    { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', basic: 2300, ic: '000417080975' },
+                    { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '070909030855' },
+                    { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '010815110403' },
+                    { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', basic: 1700, ic: '930905115074' },
+                    { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' },
+                    { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
+                ];
+                defaultEmps.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e));
+            } else { 
+                setEmployees(emps); 
+                setIsDbReady(true); 
+            }
+        });
+
+        const unsubAtt = onSnapshot(collection(db, ...bPath, 'attendance'), snap => setAttendances(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+        const unsubLvs = onSnapshot(collection(db, ...bPath, 'leaves'), snap => setLeaves(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+        const unsubSal = onSnapshot(collection(db, ...bPath, 'salaries'), snap => setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+        const unsubSet = onSnapshot(doc(db, ...bPath, 'settings', 'config'), docSnap => { if(docSnap.exists()) setSettings(docSnap.data()); });
+
+        return () => { unsubEmp(); unsubAtt(); unsubLvs(); unsubSal(); unsubSet(); };
+    }, [firebaseUser]);
+
+    if (authError) return <div className="p-8 text-center text-red-600 font-bold">Ralat Pangkalan Data: {authError}</div>;
+
+    if (!currentUser) {
+        return <LoginScreen employees={employees} onLogin={setCurrentUser} isReady={isDbReady} showToast={showToast} />;
+    }
+
+    return (
+        <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
+            <header className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-4 shadow-lg z-20">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <BrandLogo size="small" />
+                        <div>
+                            <h1 className="font-bold leading-tight">HRMS Pintar MBE</h1>
+                            <p className="text-[10px] text-slate-300">{currentUser.name}</p>
+                        </div>
                     </div>
-                    <button onclick="handleLogout()" class="bg-rose-500 hover:bg-rose-600 px-4 py-2 rounded-lg text-xs font-bold shadow-md transition">Keluar</button>
+                    <button onClick={() => setCurrentUser(null)} className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 px-3 py-1.5 rounded-lg text-sm font-bold transition">
+                        <IconLogOut /> Keluar
+                    </button>
                 </div>
             </header>
 
-            <!-- NAV TABS -->
-            <div class="bg-white border-b shadow-sm z-10 overflow-x-auto hide-scroll">
-                <div class="max-w-7xl mx-auto px-4 flex gap-2" id="nav-tabs">
-                    <button onclick="switchTab('attendance')" id="tab-attendance" class="whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 border-blue-600 text-blue-700">⏱️ Kehadiran</button>
-                    <button onclick="switchTab('leaves')" id="tab-leaves" class="whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 border-transparent text-slate-500">🏖️ Cuti</button>
-                    <button onclick="switchTab('salary')" id="tab-salary" class="hidden whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 border-transparent text-slate-500">💰 Gaji & Laporan</button>
-                    <button onclick="switchTab('admin')" id="tab-admin" class="hidden whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 border-transparent text-slate-500">⚙️ Tetapan Admin</button>
+            <div className="bg-white border-b shadow-sm z-10 overflow-x-auto">
+                <div className="max-w-7xl mx-auto px-4 flex gap-2">
+                    <button onClick={() => setActiveTab('attendance')} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab==='attendance' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>⏱️ Kehadiran</button>
+                    <button onClick={() => setActiveTab('leaves')} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab==='leaves' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>🏖️ Cuti</button>
+                    {currentUser?.code === 'ADMIN' && <button onClick={() => setActiveTab('salary')} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab==='salary' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>💰 Gaji & Laporan</button>}
+                    {currentUser?.code === 'ADMIN' && <button onClick={() => setActiveTab('admin')} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab==='admin' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>⚙️ Tetapan Admin</button>}
                 </div>
             </div>
 
-            <main class="flex-1 p-4 md:p-6 overflow-y-auto">
-                <div class="max-w-7xl mx-auto">
-                    
-                    <!-- TAB: ATTENDANCE (PEKERJA) -->
-                    <div id="view-attendance-emp" class="hidden animate-fade space-y-6 max-w-3xl mx-auto">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 text-center">
-                            <h2 class="text-xl font-bold text-slate-800">Punch Card Harian</h2>
-                            <p class="text-sm text-slate-500 mt-1" id="att-date-display"></p>
-                            <div class="inline-block mt-3 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100 mb-6">Waktu Balik Set: <span id="att-time-set">5:00 PM</span></div>
-                            
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3" id="punch-buttons">
-                                <button id="btn-clock_in" onclick="punch('clock_in', 'Masuk')" class="p-4 rounded-2xl flex flex-col items-center gap-2 shadow-sm border bg-emerald-500 text-white"><span class="font-bold text-xs uppercase">Clock In</span><span id="time-clock_in" class="text-[11px] font-mono">--:--</span></button>
-                                <button id="btn-break_start" onclick="punch('break_start', 'Rehat Keluar')" class="p-4 rounded-2xl flex flex-col items-center gap-2 shadow-sm border bg-amber-500 text-white"><span class="font-bold text-xs uppercase">Rehat Keluar</span><span id="time-break_start" class="text-[11px] font-mono">--:--</span></button>
-                                <button id="btn-break_end" onclick="punch('break_end', 'Rehat Masuk')" class="p-4 rounded-2xl flex flex-col items-center gap-2 shadow-sm border bg-sky-500 text-white"><span class="font-bold text-xs uppercase">Rehat Masuk</span><span id="time-break_end" class="text-[11px] font-mono">--:--</span></button>
-                                <button id="btn-clock_out" onclick="punch('clock_out', 'Balik')" class="p-4 rounded-2xl flex flex-col items-center gap-2 shadow-sm border bg-rose-500 text-white"><span class="font-bold text-xs uppercase">Clock Out</span><span id="time-clock_out" class="text-[11px] font-mono">--:--</span></button>
-                                <button id="btn-ot_start" onclick="punch('ot_start', 'OT Masuk')" class="p-4 rounded-2xl flex flex-col items-center gap-2 shadow-sm border bg-purple-500 text-white"><span class="font-bold text-xs uppercase">OT Masuk</span><span id="time-ot_start" class="text-[11px] font-mono">--:--</span></button>
-                                <button id="btn-ot_end" onclick="punch('ot_end', 'OT Keluar')" class="p-4 rounded-2xl flex flex-col items-center gap-2 shadow-sm border bg-indigo-500 text-white"><span class="font-bold text-xs uppercase">OT Keluar</span><span id="time-ot_end" class="text-[11px] font-mono">--:--</span></button>
-                            </div>
-
-                            <div id="late-appeal-box" class="hidden mt-8 p-5 bg-rose-50 border border-rose-200 rounded-2xl text-left">
-                                <div class="font-bold text-rose-700 mb-2 flex items-center gap-2">⚠️ Anda Rekod Masuk Lewat (> 8:15 AM)</div>
-                                <p class="text-xs text-rose-600 mb-4">Pemotongan gaji RM 5.00 akan dikenakan. Jika ada alasan munasabah, sila rayu.</p>
-                                <div id="appeal-form-area" class="flex gap-2">
-                                    <input type="text" id="appeal-reason-input" placeholder="Tulis alasan..." class="flex-1 text-sm p-2 rounded-lg border border-rose-200 outline-none"/>
-                                    <button onclick="submitAppeal()" class="bg-rose-600 text-white px-4 py-2 rounded-lg font-bold text-sm">Hantar</button>
-                                </div>
-                                <div id="appeal-status-area" class="hidden font-bold text-sm mt-2 p-3 rounded-lg border"></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                            <div class="p-4 border-b bg-slate-50"><h3 class="font-bold text-slate-700">Sejarah Terkini</h3></div>
-                            <div class="p-4 space-y-3" id="emp-att-history"></div>
-                        </div>
-                    </div>
-
-                    <!-- TAB: ATTENDANCE (ADMIN) -->
-                    <div id="view-attendance-admin" class="hidden animate-fade space-y-6">
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border flex flex-wrap justify-between items-center gap-4">
-                            <h2 class="font-bold text-lg text-slate-800">Senarai Kehadiran Harian</h2>
-                            <input type="date" id="filter-att-date" class="p-2 border-2 border-slate-200 rounded-lg font-medium outline-none" onchange="renderAdminAttendance()" />
-                        </div>
-                        <div class="bg-white rounded-3xl shadow-sm border overflow-x-auto">
-                            <table class="w-full text-left text-sm whitespace-nowrap">
-                                <thead class="bg-slate-50 text-slate-500 text-xs uppercase border-b">
-                                    <tr><th class="p-4">Pekerja</th><th class="p-4 text-center">Masuk</th><th class="p-4 text-center">Rehat (Out/In)</th><th class="p-4 text-center">Balik</th><th class="p-4 text-center">OT (In/Out)</th><th class="p-4">Status & Tindakan</th></tr>
-                                </thead>
-                                <tbody id="admin-att-tbody" class="divide-y divide-slate-100"></tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- TAB: LEAVES -->
-                    <div id="view-leaves" class="hidden animate-fade space-y-6 max-w-5xl mx-auto">
-                        <div id="leave-form-container" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                            <h2 class="text-lg font-bold text-slate-800 mb-4">Mohon Cuti Baru</h2>
-                            <form id="leave-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Jenis Cuti</label>
-                                    <select id="leave-type" class="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none font-bold"><option>Cuti Bergaji</option><option>Cuti Tanpa Gaji</option><option>Cuti Sakit (MC)</option></select>
-                                </div>
-                                <div><label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Dari</label><input type="date" id="leave-start" required class="w-full p-3 bg-slate-50 border-2 rounded-xl font-bold outline-none"/></div>
-                                <div><label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Hingga</label><input type="date" id="leave-end" required class="w-full p-3 bg-slate-50 border-2 rounded-xl font-bold outline-none"/></div>
-                                <div class="md:col-span-2"><label class="block text-xs font-bold text-slate-500 mb-1 uppercase">Sebab</label><textarea id="leave-reason" required placeholder="Nyatakan sebab..." class="w-full p-3 bg-slate-50 border-2 rounded-xl h-20 resize-none outline-none"></textarea></div>
-                                <div class="md:col-span-2"><button type="submit" class="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">Hantar Permohonan</button></div>
-                            </form>
-                        </div>
-                        <div class="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                            <div class="p-4 bg-slate-50 border-b"><h3 class="font-bold text-slate-700">Rekod Permohonan Cuti</h3></div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left text-sm whitespace-nowrap">
-                                    <thead class="text-xs text-slate-500 uppercase border-b"><tr id="leave-th-row"><th class="p-4">Jenis</th><th class="p-4">Tarikh</th><th class="p-4">Sebab</th><th class="p-4">Status</th></tr></thead>
-                                    <tbody id="leave-tbody" class="divide-y divide-slate-100"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- TAB: SALARY & REPORT -->
-                    <div id="view-salary" class="hidden animate-fade space-y-6">
-                        <div class="bg-white p-4 rounded-2xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
-                            <div class="flex gap-2">
-                                <select id="sal-year" onchange="renderSalaryList()" class="p-2 border rounded-lg outline-none font-bold bg-slate-50"><option>2024</option><option>2025</option><option selected>2026</option></select>
-                                <select id="sal-month" onchange="renderSalaryList()" class="p-2 border rounded-lg outline-none font-bold bg-slate-50">
-                                    <option value="1">Januari</option><option value="2" selected>Februari</option><option value="3">Mac</option><option value="4">April</option><option value="5">Mei</option><option value="6">Jun</option>
-                                    <option value="7">Julai</option><option value="8">Ogos</option><option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Disember</option>
-                                </select>
-                            </div>
-                            <div class="flex flex-wrap gap-2">
-                                <button onclick="openReportModal()" class="px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition">📊 Analisa</button>
-                                <button onclick="importFeb2026Data()" class="px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition">📥 Data Feb 2026</button>
-                                <button onclick="generatePukal()" class="px-4 py-2 bg-amber-50 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition">📥 Bina Pukal (Auto)</button>
-                            </div>
-                        </div>
-                        <div id="salary-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-                    </div>
-
-                    <!-- TAB: ADMIN SETTINGS -->
-                    <div id="view-admin" class="hidden animate-fade space-y-6 max-w-4xl mx-auto">
-                        <div class="bg-white p-6 rounded-3xl shadow-sm border space-y-4">
-                            <h2 class="font-bold text-lg flex items-center gap-2">⚙️ Tetapan Operasi</h2>
-                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <div><p class="font-bold text-slate-800 text-sm mb-1">Waktu Balik Rasmi</p><p class="text-xs text-slate-500">Waktu minimum untuk Clock Out tanpa denda.</p></div>
-                                <select id="admin-set-time" onchange="saveSettings()" class="p-2 font-bold bg-white border rounded-lg outline-none"><option value="16:30">4:30 PM</option><option value="17:00">5:00 PM</option></select>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                <div><p class="font-bold text-slate-800 text-sm mb-1">Bypass GPS</p><p class="text-xs text-slate-500">Benarkan pekerja Clock In tanpa sah lokasi kedai.</p></div>
-                                <button id="btn-bypass-gps" onclick="toggleBypass()" class="px-4 py-2 rounded-lg font-bold text-sm bg-slate-200 text-slate-600">MATI</button>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                            <div class="p-4 bg-slate-50 border-b flex justify-between items-center"><h3 class="font-bold text-slate-700">Profil Pekerja</h3><button onclick="openEmpModal()" class="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg">+ Tambah</button></div>
-                            <div class="overflow-x-auto">
-                                <table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-white text-xs text-slate-500 uppercase border-b"><tr><th class="p-4">Kod</th><th class="p-4">Nama</th><th class="p-4">Gaji Asas</th><th class="p-4">Tindakan</th></tr></thead><tbody id="emp-tbody" class="divide-y divide-slate-100"></tbody></table>
-                            </div>
-                        </div>
-                    </div>
-
+            <main className="flex-1 p-4 md:p-6 overflow-y-auto">
+                <div className="max-w-7xl mx-auto">
+                    {activeTab === 'attendance' && <ModuleAttendance user={currentUser} employees={employees} attendances={attendances} leaves={leaves} settings={settings} showToast={showToast} />}
+                    {activeTab === 'leaves' && <ModuleLeaves user={currentUser} leaves={leaves} employees={employees} showToast={showToast} />}
+                    {activeTab === 'salary' && currentUser?.code === 'ADMIN' && <ModuleSalary attendances={attendances} leaves={leaves} salaries={salaries} employees={employees} showToast={showToast} />}
+                    {activeTab === 'admin' && currentUser?.code === 'ADMIN' && <ModuleAdmin employees={employees} settings={settings} showToast={showToast} />}
                 </div>
             </main>
-        </div>
 
-        <!-- MODAL: ADD/EDIT EMP -->
-        <div id="modal-emp" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl">
-                <h2 class="font-black text-xl mb-4 border-b pb-2">Profil Pekerja</h2>
-                <form id="form-emp" class="space-y-4">
-                    <div><label class="text-xs font-bold">Kod Login</label><input type="text" id="emp-code" class="w-full p-2 border rounded uppercase font-mono" required/></div>
-                    <div><label class="text-xs font-bold">Nama Penuh</label><input type="text" id="emp-name" class="w-full p-2 border rounded uppercase" required/></div>
-                    <div><label class="text-xs font-bold">No IC</label><input type="text" id="emp-ic" class="w-full p-2 border rounded"/></div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div><label class="text-xs font-bold">Jabatan</label><input type="text" id="emp-dept" class="w-full p-2 border rounded"/></div>
-                        <div><label class="text-xs font-bold">Jawatan</label><input type="text" id="emp-position" class="w-full p-2 border rounded"/></div>
+            {toast && (
+                <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-2xl font-bold text-white z-50 flex items-center gap-2 ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
+                    {toast.type === 'success' ? <IconCheck/> : <IconAlert/>} {toast.msg}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ==========================================
+// SCREEN: LOGIN
+// ==========================================
+function LoginScreen({ employees, onLogin, isReady, showToast }) {
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const cleanUser = username.trim().toUpperCase();
+        
+        if(cleanUser === 'ADMIN' && password === 'admin123') {
+            onLogin({ code: 'ADMIN', name: 'Administrator' }); return;
+        }
+        
+        const emp = employees.find(e => (e?.code || '') === cleanUser);
+        if(emp && password === emp.code) {
+            onLogin(emp);
+        } else {
+            showToast("ID atau Kata Laluan tidak sah.", "error");
+        }
+    };
+
+    return (
+        <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-xl border border-slate-100">
+                <BrandLogo size="large" />
+                <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Kod Pekerja</label>
+                        <input type="text" value={username} onChange={e=>setUsername(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none uppercase font-bold text-slate-700 transition" placeholder="Cth: MZBE012024" required/>
                     </div>
-                    <div><label class="text-xs font-bold text-emerald-600">Gaji Asas (RM)</label><input type="number" step="0.01" id="emp-basic" class="w-full p-2 border-2 border-emerald-200 rounded font-bold" required/></div>
-                    <div class="flex gap-2 pt-4"><button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold">Simpan</button><button type="button" onclick="closeModals()" class="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold">Batal</button></div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Kata Laluan</label>
+                        <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold text-slate-700 transition" placeholder="Masukkan kata laluan" required/>
+                    </div>
+                    <button type="submit" disabled={!isReady} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition disabled:opacity-50">
+                        {isReady ? 'Log Masuk Sistem' : 'Memuat Data...'}
+                    </button>
                 </form>
             </div>
         </div>
+    );
+}
 
-        <!-- MODAL: REPORT -->
-        <div id="modal-report" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 flex flex-col">
-                <div class="flex justify-between items-center mb-6"><h2 class="font-black text-2xl" id="report-title">Laporan Analisa</h2><button onclick="closeModals()" class="p-2 bg-slate-100 rounded-full">✕</button></div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="report-summary"></div>
-                <div class="overflow-x-auto border rounded-xl"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-slate-50 border-b text-xs text-slate-500 uppercase"><tr><th class="p-3">Bulan</th><th class="p-3 text-right">G. Asas</th><th class="p-3 text-right">Elaun/OT</th><th class="p-3 text-right text-rose-500">Potongan</th><th class="p-3 text-right text-emerald-600">J. Bersih</th></tr></thead><tbody id="report-tbody" class="divide-y"></tbody></table></div>
-                <div class="mt-6 flex justify-end"><button onclick="printReport()" class="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg">🖨️ Cetak PDF</button></div>
-            </div>
-        </div>
+// ==========================================
+// MODULE 1: ATTENDANCE
+// ==========================================
+function ModuleAttendance({ user, employees, attendances, leaves, settings, showToast }) {
+    const isAdmin = user?.code === 'ADMIN';
+    const today = getTodayString();
+    const [filterDate, setFilterDate] = useState(today);
+    const [modalGps, setModalGps] = useState(null);
+    const [appealReason, setAppealReason] = useState('');
 
-        <!-- MODAL: INFO / GPS -->
-        <div id="modal-info" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
-                <div id="info-icon" class="text-4xl mb-4"></div>
-                <h3 id="info-title" class="font-bold text-lg mb-2"></h3>
-                <p id="info-msg" class="text-sm text-slate-500 mb-6"></p>
-                <button id="info-btn" onclick="closeInfoModal()" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Tutup</button>
-            </div>
-        </div>
+    const myAtt = attendances.find(a => (a?.date || '') === today && (a?.empCode || '') === user.code) || {};
+    const isOnLeave = leaves.some(l => (l?.empCode || '') === user.code && (l?.status || '') === 'Lulus' && today >= (l?.startDate || '') && today <= (l?.endDate || ''));
 
-        <!-- TOAST -->
-        <div id="toast" class="hidden fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-2xl font-bold text-white z-50 animate-fade"></div>
-    </div>
+    const verifyLocationAndExecute = (actionName, callback) => {
+        if (settings.bypassGps || isAdmin) { callback(); return; }
+        
+        setModalGps({ type: 'loading', msg: 'Sedang mencari isyarat GPS...' });
+        if (!navigator.geolocation) { setModalGps({ type: 'error', msg: 'Peranti anda tidak menyokong GPS.' }); return; }
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        navigator.geolocation.getCurrentPosition(pos => {
+            const dist = getDistanceInMeters(pos.coords.latitude, pos.coords.longitude, SHOP_LAT, SHOP_LNG);
+            if (dist <= ALLOWED_RADIUS) {
+                setModalGps(null); callback();
+            } else {
+                setModalGps({ type: 'error', msg: `Akses ditolak. Jarak: ${Math.round(dist)}m dari kedai (Maks: ${ALLOWED_RADIUS}m).` });
+            }
+        }, err => {
+            setModalGps({ type: 'error', msg: 'Sila benarkan akses Lokasi (Location/GPS) pada pelayar peranti anda.' });
+        }, { enableHighAccuracy: true });
+    };
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAd_sBPBJ4Zru0gbX8dCD9FxJ4Qc0Dt7-Q",
-            authDomain: "sistemgajimuiz.firebaseapp.com",
-            projectId: "sistemgajimuiz",
-            storageBucket: "sistemgajimuiz.firebasestorage.app",
-            messagingSenderId: "971845171525",
-            appId: "1:971845171525:web:a4ba8a5848d2262dac262c"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const APP_ID = 'sistemgajimzbe'; 
-
-        // GPS
-        const SHOP_LAT = 5.76973; 
-        const SHOP_LNG = 102.56143; 
-        const ALLOWED_RADIUS = 150; 
-        function getDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; const p1 = lat1 * Math.PI/180; const p2 = lat2 * Math.PI/180; 
-            const dp = (lat2-lat1) * Math.PI/180; const dl = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(dp/2)*Math.sin(dp/2) + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const punch = async (field) => {
+        const now = new Date();
+        const recordId = `${today}_${user.code}`;
+        let data = { [field]: now.toISOString(), updated_at: now.toISOString() };
+        
+        if(field === 'clock_in') {
+            data.empCode = user.code; 
+            data.empName = user.name; 
+            data.date = today;
+            data.isLate = (now.getHours() > 8 || (now.getHours() === 8 && now.getMinutes() > 15));
+            data.appealStatus = 'None'; 
+            data.appealReason = '';
         }
 
-        // GLOBALS
-        let currentUser = null;
-        let dbEmployees = [];
-        let dbAttendance = [];
-        let dbLeaves = [];
-        let dbSalaries = [];
-        let dbSettings = { clockOutTime: '17:00', bypassGps: false };
+        try {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attendance', recordId), data, {merge:true});
+            showToast(`Berjaya rekod kehadiran`, 'success');
+        } catch(e) { showToast('Ralat pelayan.', 'error'); }
+    };
 
-        const defaultEmployees = [
-            { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '040421110053' },
-            { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', basic: 2100, ic: '980416036979' },
-            { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', basic: 2000, ic: '000917110384' },
-            { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', basic: 2300, ic: '971017385034' },
-            { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '' },
-            { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', basic: 2300, ic: '000417080975' },
-            { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '070909030855' },
-            { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '010815110403' },
-            { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', basic: 1700, ic: '930905115074' },
-            { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' },
-            { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
+    const submitAppeal = async () => {
+        if(!appealReason.trim()) return showToast("Sila masukkan alasan munasabah.", "error");
+        const recordId = `${today}_${user.code}`;
+        try {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attendance', recordId), { appealStatus: 'Pending', appealReason });
+            showToast("Rayuan telah dihantar kepada Admin.", "success");
+            setAppealReason('');
+        } catch(e) { showToast('Gagal menghantar rayuan.', 'error'); }
+    };
+
+    const renderPunchButton = (field, label, dependsOn, mustBeNull, colorClass) => {
+        const isDone = !!myAtt[field];
+        const isDisabled = isDone || (dependsOn && !myAtt[dependsOn]) || (mustBeNull && !!myAtt[mustBeNull]);
+        
+        return (
+            <button disabled={isDisabled} onClick={() => verifyLocationAndExecute(label, () => punch(field))} 
+                className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm border ${isDisabled ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : `${colorClass} text-white border-transparent active:scale-95 shadow-md`}`}>
+                <span className="font-bold text-xs uppercase tracking-wider">{label}</span>
+                <span className={`text-[11px] font-mono ${isDone ? 'bg-black/10 text-white px-2 py-0.5 rounded-md' : ''}`}>{isDone ? formatTimeDisplay(myAtt[field]) : '--:--'}</span>
+            </button>
+        );
+    };
+
+    if (!isAdmin) {
+        return (
+            <div className="space-y-6 max-w-3xl mx-auto">
+                {modalGps && (
+                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+                            {modalGps.type === 'loading' ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div> : <div className="flex justify-center text-rose-500 mb-4"><IconMapPin size={48}/></div>}
+                            <h3 className="font-bold text-lg mb-2 text-slate-800">{modalGps.type === 'loading' ? 'Mengesahkan Lokasi...' : 'Akses Ditolak'}</h3>
+                            <p className="text-sm text-slate-500 mb-6">{modalGps.msg}</p>
+                            {modalGps.type === 'error' && <button onClick={()=>setModalGps(null)} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Tutup</button>}
+                        </div>
+                    </div>
+                )}
+
+                {isOnLeave ? (
+                    <div className="bg-amber-50 border border-amber-200 p-8 rounded-3xl text-center">
+                        <div className="text-4xl mb-4">🏖️</div><h2 className="text-xl font-black text-amber-800 mb-2">Selamat Bercuti!</h2>
+                        <p className="text-sm text-amber-600">Anda sedang bercuti hari ini. Fungsi Punch Card ditutup.</p>
+                    </div>
+                ) : (
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                        <div className="text-center mb-6">
+                            <h2 className="text-xl font-bold text-slate-800">Punch Card Harian</h2>
+                            <p className="text-sm text-slate-500 mt-1">{new Date().toLocaleDateString('ms-MY', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</p>
+                            <div className="inline-block mt-3 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">Waktu Balik Set: {settings.clockOutTime === '17:00' ? '5:00 PM' : '4:30 PM'}</div>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {renderPunchButton('clock_in', 'Clock In', null, null, 'bg-emerald-500')}
+                            {renderPunchButton('break_start', 'Rehat Keluar', 'clock_in', 'clock_out', 'bg-amber-500')}
+                            {renderPunchButton('break_end', 'Rehat Masuk', 'break_start', 'clock_out', 'bg-sky-500')}
+                            {renderPunchButton('clock_out', 'Clock Out', 'clock_in', null, 'bg-rose-500')}
+                            {renderPunchButton('ot_start', 'OT Masuk', 'clock_out', null, 'bg-purple-500')}
+                            {renderPunchButton('ot_end', 'OT Keluar', 'ot_start', null, 'bg-indigo-500')}
+                        </div>
+
+                        {myAtt.isLate && (
+                            <div className="mt-8 p-5 bg-rose-50 border border-rose-200 rounded-2xl">
+                                <div className="flex items-center gap-2 text-rose-700 font-bold mb-2"><IconAlert size={20}/> Anda Rekod Masuk Lewat</div>
+                                <p className="text-xs text-rose-600 mb-4">Pemotongan gaji RM 5.00 akan dikenakan pada bulan ini. Jika anda mempunyai alasan kecemasan yang munasabah, sila hantar rayuan.</p>
+                                
+                                {myAtt.appealStatus === 'None' && (
+                                    <div className="flex gap-2"><input type="text" value={appealReason} onChange={e=>setAppealReason(e.target.value)} placeholder="Tulis alasan di sini..." className="flex-1 text-sm p-2 rounded-lg border border-rose-200 outline-none"/><button onClick={submitAppeal} className="bg-rose-600 text-white px-4 py-2 rounded-lg font-bold text-sm">Hantar</button></div>
+                                )}
+                                {myAtt.appealStatus === 'Pending' && <div className="bg-white p-3 rounded-lg text-sm text-amber-600 font-bold border border-amber-200">⏳ Rayuan sedang diproses oleh Admin.</div>}
+                                {myAtt.appealStatus === 'Approved' && <div className="bg-white p-3 rounded-lg text-sm text-emerald-600 font-bold border border-emerald-200">✅ Rayuan Lulus. Tiada potongan RM5.</div>}
+                                {myAtt.appealStatus === 'Ditolak' && <div className="bg-white p-3 rounded-lg text-sm text-rose-700 font-bold border border-rose-200">❌ Rayuan Ditolak. Potongan RM5 dikekalkan.</div>}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div className="p-4 border-b bg-slate-50"><h3 className="font-bold text-slate-700">Sejarah Terkini</h3></div>
+                    <div className="p-4 space-y-3">
+                        {attendances.filter(a => (a?.empCode || '') === user.code).sort((a,b) => (b?.date || '').localeCompare(a?.date || '')).slice(0,7).map(a => (
+                            <div key={a.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0">
+                                <span className="font-medium text-slate-600">{a.date}</span>
+                                <div className="flex gap-3 text-xs font-mono">
+                                    <span className="text-emerald-600">IN: {formatTimeDisplay(a.clock_in)}</span>
+                                    <span className="text-rose-600">OUT: {formatTimeDisplay(a.clock_out)}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const filteredAtt = attendances.filter(a => (a?.date || '') === filterDate);
+    return (
+        <div className="space-y-6">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-wrap justify-between items-center gap-4">
+                <h2 className="font-bold text-lg text-slate-800">Senarai Kehadiran Harian</h2>
+                <input type="date" value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="p-2 border-2 border-slate-200 rounded-lg font-medium outline-none focus:border-blue-500" />
+            </div>
+
+            <div className="bg-white rounded-3xl shadow-sm border overflow-x-auto">
+                <table className="w-full text-left text-sm whitespace-nowrap">
+                    <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
+                        <tr><th className="p-4">Pekerja</th><th className="p-4 text-center">Masuk</th><th className="p-4 text-center">Rehat (Out/In)</th><th className="p-4 text-center">Balik</th><th className="p-4 text-center">OT (In/Out)</th><th className="p-4">Status & Tindakan</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {filteredAtt.length === 0 ? <tr><td colSpan="6" className="p-8 text-center text-slate-400">Tiada rekod pada tarikh ini.</td></tr> : 
+                        filteredAtt.map(a => {
+                            const emp = employees.find(e => e.code === a.empCode);
+                            const displayName = emp ? emp.name : 'Pekerja Tidak Diketahui';
+                            return (
+                                <tr key={a.id} className="hover:bg-slate-50">
+                                    <td className="p-4 font-bold text-slate-700">{displayName}</td>
+                                    <td className="p-4 text-center"><span className="text-emerald-600 font-mono bg-emerald-50 px-2 py-1 rounded">{formatTimeDisplay(a.clock_in)}</span></td>
+                                    <td className="p-4 text-center text-xs text-slate-500 font-mono">{formatTimeDisplay(a.break_start)} - {formatTimeDisplay(a.break_end)}</td>
+                                    <td className="p-4 text-center"><span className="text-rose-600 font-mono bg-rose-50 px-2 py-1 rounded">{formatTimeDisplay(a.clock_out)}</span></td>
+                                    <td className="p-4 text-center text-xs text-purple-600 font-mono">{formatTimeDisplay(a.ot_start)} - {formatTimeDisplay(a.ot_end)}</td>
+                                    <td className="p-4">
+                                        {!a.isLate ? <span className="text-xs font-bold text-emerald-600 px-2 py-1 bg-emerald-100 rounded">On Time</span> : 
+                                            <div>
+                                                <span className="text-xs font-bold text-rose-600 px-2 py-1 bg-rose-100 rounded mb-1 inline-block">Lewat (Denda RM5)</span>
+                                                {a.appealStatus === 'Pending' && (
+                                                    <div className="mt-1 flex items-center gap-1">
+                                                        <button onClick={async()=>await updateDoc(doc(db,'artifacts',appId,'public','data','attendance',a.id),{appealStatus:'Approved'})} className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded">LULUS</button>
+                                                        <button onClick={async()=>await updateDoc(doc(db,'artifacts',appId,'public','data','attendance',a.id),{appealStatus:'Ditolak'})} className="px-2 py-1 bg-rose-500 text-white text-[10px] font-bold rounded">TOLAK</button>
+                                                        <span className="text-[10px] text-slate-500 italic max-w-[100px] truncate" title={a.appealReason}>{a.appealReason}</span>
+                                                    </div>
+                                                )}
+                                                {a.appealStatus === 'Approved' && <div className="text-[10px] text-emerald-600 font-bold mt-1">Rayuan Diterima (Tiada Potongan)</div>}
+                                                {a.appealStatus === 'Ditolak' && <div className="text-[10px] text-rose-600 font-bold mt-1">Rayuan Ditolak</div>}
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function ModuleLeaves({ user, leaves, employees, showToast }) {
+    const isAdmin = user?.code === 'ADMIN';
+    const [form, setForm] = useState({ type: 'Cuti Bergaji', startDate: '', endDate: '', reason: '' });
+
+    const submitForm = async (e) => {
+        e.preventDefault();
+        if(form.startDate > form.endDate) return showToast("Tarikh Mula tidak boleh melebihi Tarikh Tamat", "error");
+        try {
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'leaves'), { ...form, empCode: user.code, status: 'Menunggu', appliedAt: new Date().toISOString() });
+            setForm({ type: 'Cuti Bergaji', startDate: '', endDate: '', reason: '' });
+            showToast("Permohonan Cuti Dihantar!", "success");
+        } catch(err) { showToast("Ralat.", "error"); }
+    };
+
+    const updateStatus = async (id, status) => {
+        try {
+            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaves', id), { status });
+            showToast(`Status ditukar ke ${status}`, "success");
+        } catch(e) { showToast("Gagal dikemaskini", "error"); }
+    };
+
+    const deleteLeave = async (id) => {
+        if(window.confirm("Padam permohonan ini?")) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaves', id));
+        }
+    };
+
+    const myLeaves = isAdmin ? leaves : leaves.filter(l => (l?.empCode || '') === user.code);
+    myLeaves.sort((a,b) => (b?.appliedAt || '').localeCompare(a?.appliedAt || ''));
+
+    return (
+        <div className="space-y-6 max-w-5xl mx-auto">
+            {!isAdmin && (
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4">Mohon Cuti Baru</h2>
+                    <form onSubmit={submitForm} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Jenis Cuti</label>
+                            <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})} className="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none focus:border-blue-500 font-bold"><option>Cuti Bergaji</option><option>Cuti Tanpa Gaji</option><option>Cuti Sakit (MC)</option><option>Cuti Kecemasan</option></select>
+                        </div>
+                        <div><label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Dari Tarikh</label><input type="date" value={form.startDate} onChange={e=>setForm({...form,startDate:e.target.value})} required className="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none focus:border-blue-500 font-bold"/></div>
+                        <div><label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Hingga Tarikh</label><input type="date" value={form.endDate} onChange={e=>setForm({...form,endDate:e.target.value})} required className="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none focus:border-blue-500 font-bold"/></div>
+                        <div className="md:col-span-2"><label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Sebab</label><textarea value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})} required placeholder="Nyatakan sebab..." className="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none focus:border-blue-500 h-20 resize-none"></textarea></div>
+                        <div className="md:col-span-2"><button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">Hantar Permohonan</button></div>
+                    </form>
+                </div>
+            )}
+
+            <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
+                <div className="p-4 bg-slate-50 border-b"><h3 className="font-bold text-slate-700">Rekod & Status Permohonan Cuti</h3></div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="text-xs text-slate-500 uppercase border-b"><tr>{isAdmin && <th className="p-4">Pekerja</th>}<th className="p-4">Jenis</th><th className="p-4">Tarikh</th><th className="p-4">Sebab</th><th className="p-4">Status</th>{isAdmin && <th className="p-4 text-right">Tindakan</th>}</tr></thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {myLeaves.length === 0 ? <tr><td colSpan="6" className="p-8 text-center text-slate-400">Tiada rekod permohonan.</td></tr> : 
+                            myLeaves.map(l => {
+                                const emp = employees.find(e => e.code === l.empCode);
+                                const displayName = emp ? emp.name : 'Pekerja Tidak Diketahui';
+                                return (
+                                <tr key={l.id} className="hover:bg-slate-50">
+                                    {isAdmin && <td className="p-4 font-bold text-slate-700">{displayName}</td>}
+                                    <td className="p-4 font-medium">{l.type}</td>
+                                    <td className="p-4 font-mono text-xs">{l.startDate} <span className="text-slate-400">hingga</span> {l.endDate}</td>
+                                    <td className="p-4 text-slate-500 text-xs max-w-[200px] truncate" title={l.reason}>{l.reason}</td>
+                                    <td className="p-4">
+                                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${l.status==='Lulus'?'bg-emerald-100 text-emerald-700':l.status==='Ditolak'?'bg-rose-100 text-rose-700':'bg-amber-100 text-amber-700'}`}>{l.status}</span>
+                                    </td>
+                                    {isAdmin && (
+                                        <td className="p-4 text-right flex gap-1 justify-end items-center">
+                                            {l.status === 'Menunggu' && (
+                                                <div className="flex justify-end gap-1">
+                                                    <button onClick={()=>updateStatus(l.id, 'Lulus')} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600"><IconCheck size={16}/></button>
+                                                    <button onClick={()=>updateStatus(l.id, 'Ditolak')} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600"><IconAlert size={16}/></button>
+                                                </div>
+                                            )}
+                                            {l.status !== 'Menunggu' && <button onClick={()=>deleteLeave(l.id)} className="p-1.5 bg-slate-200 text-slate-600 rounded hover:bg-rose-500 hover:text-white transition"><IconTrash size={16}/></button>}
+                                        </td>
+                                    )}
+                                </tr>
+                            )})}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ModuleSalary({ attendances, leaves, salaries, employees, showToast }) {
+    const [year, setYear] = useState(new Date().getFullYear().toString());
+    const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
+    const [modalForm, setModalForm] = useState(null); 
+    const [showReport, setShowReport] = useState(false);
+    
+    const filteredSalaries = salaries.filter(s => (s?.year || '') === year && (s?.month || '') === month);
+
+    const getDefaultsFromEmp = (empCode) => {
+        const emp = employees.find(e => (e?.code || '') === empCode);
+        if(!emp) return {};
+        
+        let lateCount = 0; let unpaidCount = 0;
+        attendances.forEach(a => { if((a?.empCode || '') === empCode && a?.isLate && a?.appealStatus !== 'Approved' && (a?.date || '').startsWith(`${year}-${month.padStart(2,'0')}`)) lateCount++; });
+        leaves.forEach(l => { if((l?.empCode || '') === empCode && l?.status === 'Lulus' && l?.type === 'Cuti Tanpa Gaji' && (l?.startDate || '').startsWith(`${year}-${month.padStart(2,'0')}`)) {
+            const s = new Date(l.startDate); const e = new Date(l.endDate);
+            unpaidCount += Math.round((e-s)/(1000*60*60*24)) + 1;
+        }});
+        
+        const basic = emp.basic || 0;
+        const dailyRate = basic / 26;
+        const unpaidDeduct = dailyRate * unpaidCount;
+        const lateDeduct = lateCount * 5;
+        const kwsp = basic * 0.11; 
+
+        return { basic_salary: basic, unpaid_leave_days: unpaidCount, unpaid_leave_deduction: parseFloat(unpaidDeduct.toFixed(2)), late_deduction: lateDeduct, kwsp: parseFloat(kwsp.toFixed(2)), allowance:0, ot_hours:0, ot_rate:10, bonus:0, advance_payment:0, socso:0, eis:0, other_deductions:0 };
+    };
+
+    const openAdd = () => {
+        const firstEmpCode = employees.find(e=>(e?.code || '') !== 'ADMIN')?.code;
+        setModalForm({ mode: 'add', data: { empCode: firstEmpCode, ...getDefaultsFromEmp(firstEmpCode) } });
+    };
+    const openEdit = (sal) => setModalForm({ mode: 'edit', data: { ...sal } });
+    const closeM = () => setModalForm(null);
+
+    const handleFormChange = (e, field) => {
+        let val = e.target.value;
+        const newData = { ...modalForm.data, [field]: val };
+        
+        if (field === 'empCode' && modalForm.mode === 'add') {
+            Object.assign(newData, getDefaultsFromEmp(val));
+        }
+        if (field === 'basic_salary' || field === 'unpaid_leave_days') {
+            const b = parseFloat(newData.basic_salary) || 0;
+            const d = parseInt(newData.unpaid_leave_days) || 0;
+            newData.unpaid_leave_deduction = parseFloat(((b / 26) * d).toFixed(2));
+        }
+        setModalForm({ ...modalForm, data: newData });
+    };
+
+    const saveSalary = async (e) => {
+        e.preventDefault(); const d = modalForm.data;
+        const emp = employees.find(x => (x?.code || '') === d.empCode);
+        const recordId = modalForm.mode === 'edit' ? d.id : `sal_${d.empCode}_${year}_${month}`;
+        
+        const finalData = {
+            empCode: d.empCode, empName: emp?.name || '', icNumber: emp?.ic || '', year, month,
+            basic_salary: parseFloat(d.basic_salary)||0, allowance: parseFloat(d.allowance)||0, ot_hours: parseFloat(d.ot_hours)||0, ot_rate: parseFloat(d.ot_rate)||0, bonus: parseFloat(d.bonus)||0, advance_payment: parseFloat(d.advance_payment)||0,
+            kwsp: parseFloat(d.kwsp)||0, socso: parseFloat(d.socso)||0, eis: parseFloat(d.eis)||0, other_deductions: parseFloat(d.other_deductions)||0, late_deduction: parseFloat(d.late_deduction)||0,
+            unpaid_leave_days: parseInt(d.unpaid_leave_days)||0, unpaid_leave_deduction: parseFloat(d.unpaid_leave_deduction)||0,
+            updatedAt: new Date().toISOString()
+        };
+
+        try {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), finalData, {merge:true});
+            showToast('Rekod Gaji Disimpan!', 'success'); 
+            closeM();
+        } catch(err) {
+            showToast('Gagal menyimpan rekod gaji.', 'error');
+        }
+    };
+
+    const importPukal = async () => {
+        if(!window.confirm(`Bina rekod gaji pukal untuk bulan ${MONTHS[parseInt(month)]} ${year}?`)) return;
+        showToast('Membina rekod...', 'info');
+        try {
+            for (const emp of employees.filter(e => (e?.code || '') !== 'ADMIN')) {
+                const id = `sal_${emp.code}_${year}_${month}`;
+                const def = getDefaultsFromEmp(emp.code);
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', id), { empCode: emp.code, empName: emp.name, icNumber: emp.ic||'', year, month, ...def, updatedAt: new Date().toISOString() }, {merge:true});
+            }
+            showToast('Selesai dibina!', 'success');
+        } catch(err) {
+            showToast('Ralat membina rekod.', 'error');
+        }
+    };
+
+    const importFeb2026Data = async () => {
+        if(!window.confirm("Anda pasti mahu import data Gaji Februari 2026 secara spesifik?")) return;
+        showToast('Memuat naik data Februari 2026...', 'info');
+        
+        const febData = [
+            { empCode: 'MZBE012024', advance_payment: 700, kwsp: 198, basic_salary: 1800 },
+            { empCode: 'MZBE092022', advance_payment: 800, kwsp: 231, basic_salary: 2100 },
+            { empCode: 'MZBE102022', advance_payment: 800, kwsp: 220, basic_salary: 2000 },
+            { empCode: 'MZBE072022', advance_payment: 1000, kwsp: 253, basic_salary: 2300 },
+            { empCode: 'MZBE022024', advance_payment: 0, kwsp: 198, basic_salary: 1800 },
+            { empCode: 'MZBE082022', advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, basic_salary: 2300 },
+            { empCode: 'MZBE022025', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
+            { empCode: 'MZBE032025', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
+            { empCode: 'MZBE042025', advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, basic_salary: 1700 },
+            { empCode: 'MZBEBOSS001', advance_payment: 0, kwsp: 352, basic_salary: 3500 }
         ];
-
-        // INIT
-        signInAnonymously(auth);
-        onAuthStateChanged(auth, user => {
-            if(user) {
-                document.getElementById('cloud-status').classList.replace('bg-slate-500', 'bg-emerald-400');
-                const path = ['artifacts', APP_ID, 'public', 'data'];
-                
-                onSnapshot(collection(db, ...path, 'employees'), s => {
-                    dbEmployees = s.docs.map(d => ({...d.data(), id:d.id}));
-                    if(dbEmployees.length === 0) defaultEmployees.forEach(e => setDoc(doc(db, ...path, 'employees', e.code), e));
-                    
-                    document.getElementById('btn-login').disabled = false;
-                    document.getElementById('login-text').textContent = "Log Masuk";
-                    document.getElementById('login-loader').classList.add('hidden');
-                    
-                    if(currentUser) { renderAdminEmpList(); }
-                });
-                
-                onSnapshot(collection(db, ...path, 'attendance'), s => { dbAttendance = s.docs.map(d=>({...d.data(), id:d.id})); if(currentUser) { updatePunchUI(); renderAdminAttendance(); } });
-                onSnapshot(collection(db, ...path, 'leaves'), s => { dbLeaves = s.docs.map(d=>({...d.data(), id:d.id})); if(currentUser) { renderLeaves(); } });
-                onSnapshot(collection(db, ...path, 'salaries'), s => { dbSalaries = s.docs.map(d=>({...d.data(), id:d.id})); if(currentUser) { renderSalaryList(); } });
-                onSnapshot(doc(db, ...path, 'settings', 'config'), d => { if(d.exists()){ dbSettings = d.data(); updateSettingsUI(); } });
-            }
-        });
-
-        // UTILS
-        const getToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-        const fmtTime = (iso) => { if(!iso)return'--:--'; const d=new Date(iso); let h=d.getHours(), m=d.getMinutes(); const a=h>=12?'PM':'AM'; h=h%12||12; m=String(m).padStart(2,'0'); return `${h}:${m} ${a}`; };
-        window.showToast = (msg, type='info') => { const t = document.getElementById('toast'); t.textContent = msg; t.className = `fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-2xl font-bold text-white z-50 animate-fade ${type==='success'?'bg-emerald-500':'bg-rose-500'}`; t.classList.remove('hidden'); setTimeout(()=>t.classList.add('hidden'), 3000); };
-        window.closeModals = () => { ['modal-emp', 'modal-report'].forEach(id => document.getElementById(id).classList.add('hidden')); };
         
-        window.showInfo = (title, msg, type='error', hideBtn=false) => {
-            document.getElementById('info-title').textContent = title;
-            document.getElementById('info-msg').textContent = msg;
-            document.getElementById('info-icon').textContent = type==='error' ? '❌' : (type==='loading' ? '⏳' : '✅');
-            document.getElementById('info-btn').style.display = hideBtn ? 'none' : 'block';
-            document.getElementById('modal-info').classList.remove('hidden');
-        };
-        window.closeInfoModal = () => document.getElementById('modal-info').classList.add('hidden');
-
-        // LOGIN
-        document.getElementById('login-form').addEventListener('submit', e => {
-            e.preventDefault();
-            const u = document.getElementById('login-username').value.trim().toUpperCase();
-            const p = document.getElementById('login-password').value.trim();
-            const err = document.getElementById('login-error');
-            
-            if(u === 'ADMIN' && p === 'admin123') { currentUser = {code:'ADMIN', name:'Administrator', isAdmin:true}; loginSuccess(); return; }
-            const emp = dbEmployees.find(x => x.code === u);
-            if(emp && p === emp.code) { currentUser = {...emp, isAdmin:false}; loginSuccess(); return; }
-            
-            err.textContent = "ID atau Kata Laluan Salah."; err.classList.remove('hidden');
-        });
-
-        function loginSuccess() {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('dashboard').classList.remove('hidden');
-            document.getElementById('dashboard').classList.add('flex');
-            document.getElementById('user-display').textContent = currentUser.name;
-            
-            const isAdm = currentUser.isAdmin;
-            document.getElementById('tab-salary').classList.toggle('hidden', !isAdm);
-            document.getElementById('tab-admin').classList.toggle('hidden', !isAdm);
-            document.getElementById('leave-form-container').classList.toggle('hidden', isAdm);
-            
-            let thRow = document.getElementById('leave-th-row');
-            if(isAdm) {
-                if(!document.getElementById('th-emp')) thRow.insertAdjacentHTML('afterbegin', '<th id="th-emp" class="p-4">Pekerja</th>');
-                if(!document.getElementById('th-act')) thRow.insertAdjacentHTML('beforeend', '<th id="th-act" class="p-4 text-right">Tindakan</th>');
-            } else {
-                if(document.getElementById('th-emp')) document.getElementById('th-emp').remove();
-                if(document.getElementById('th-act')) document.getElementById('th-act').remove();
-            }
-
-            switchTab('attendance');
-            updateSettingsUI();
-        }
-
-        window.handleLogout = () => location.reload();
-
-        // TABS
-        window.switchTab = (tab) => {
-            ['attendance', 'leaves', 'salary', 'admin'].forEach(t => {
-                document.getElementById(`tab-${t}`).className = `whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 ${t===tab ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`;
-                if(document.getElementById(`view-${t}`)) document.getElementById(`view-${t}`).classList.add('hidden');
-                if(document.getElementById(`view-${t}-emp`)) document.getElementById(`view-${t}-emp`).classList.add('hidden');
-                if(document.getElementById(`view-${t}-admin`)) document.getElementById(`view-${t}-admin`).classList.add('hidden');
-            });
-            
-            if(tab === 'attendance') {
-                if(currentUser.isAdmin) { document.getElementById('view-attendance-admin').classList.remove('hidden'); document.getElementById('filter-att-date').value = getToday(); renderAdminAttendance(); }
-                else { document.getElementById('view-attendance-emp').classList.remove('hidden'); updatePunchUI(); }
-            } else {
-                document.getElementById(`view-${tab}`).classList.remove('hidden');
-                if(tab === 'leaves') renderLeaves();
-                if(tab === 'salary') renderSalaryList();
-                if(tab === 'admin') renderAdminEmpList();
-            }
-        };
-
-        // ATTENDANCE (EMP)
-        window.updatePunchUI = () => {
-            if(!currentUser || currentUser.isAdmin) return;
-            const today = getToday();
-            document.getElementById('att-date-display').textContent = new Date().toLocaleDateString('ms-MY', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-            
-            const rec = dbAttendance.find(a => a.date === today && a.empCode === currentUser.code) || {};
-            const isOnLeave = dbLeaves.some(l => l.empCode === currentUser.code && l.status === 'Lulus' && today >= l.startDate && today <= l.endDate);
-
-            if(isOnLeave) {
-                document.getElementById('punch-buttons').innerHTML = `<div class="col-span-full bg-amber-50 p-6 rounded-xl border border-amber-200 text-amber-700 font-bold text-lg">🏖️ Anda sedang bercuti hari ini. Selamat berehat!</div>`;
-                return;
-            }
-
-            const fields = ['clock_in', 'break_start', 'break_end', 'clock_out', 'ot_start', 'ot_end'];
-            fields.forEach(f => {
-                const btn = document.getElementById(`btn-${f}`); const timeSpan = document.getElementById(`time-${f}`);
-                timeSpan.textContent = rec[f] ? fmtTime(rec[f]) : '--:--';
-                let disabled = !!rec[f];
-                if(f === 'break_start') disabled = !rec.clock_in || !!rec.break_start || !!rec.clock_out;
-                if(f === 'break_end') disabled = !rec.break_start || !!rec.break_end || !!rec.clock_out;
-                if(f === 'clock_out') disabled = !rec.clock_in || !!rec.clock_out;
-                if(f === 'ot_start') disabled = !rec.clock_out || !!rec.ot_start;
-                if(f === 'ot_end') disabled = !rec.ot_start || !!rec.ot_end;
-                
-                btn.disabled = disabled;
-                if(disabled) { btn.classList.add('bg-slate-100', 'text-slate-400', 'border-slate-200'); btn.classList.remove('text-white'); }
-                else { btn.classList.remove('bg-slate-100', 'text-slate-400', 'border-slate-200'); btn.classList.add('text-white'); }
-            });
-
-            const appealBox = document.getElementById('late-appeal-box');
-            if(rec.isLate) {
-                appealBox.classList.remove('hidden');
-                document.getElementById('appeal-form-area').classList.toggle('hidden', rec.appealStatus !== 'None');
-                const stArea = document.getElementById('appeal-status-area');
-                stArea.classList.toggle('hidden', rec.appealStatus === 'None');
-                if(rec.appealStatus === 'Pending') { stArea.innerHTML = "⏳ Rayuan sedang diproses Admin."; stArea.className = "text-amber-600 bg-amber-50 border-amber-200"; }
-                if(rec.appealStatus === 'Approved') { stArea.innerHTML = "✅ Lulus. Tiada potongan RM5."; stArea.className = "text-emerald-600 bg-emerald-50 border-emerald-200"; }
-                if(rec.appealStatus === 'Ditolak') { stArea.innerHTML = "❌ Ditolak. Potongan RM5 dikekalkan."; stArea.className = "text-rose-600 bg-rose-50 border-rose-200"; }
-            } else { appealBox.classList.add('hidden'); }
-
-            // History
-            const histHtml = dbAttendance.filter(a => a.empCode === currentUser.code).sort((a,b) => b.date.localeCompare(a.date)).slice(0,7).map(a => `
-                <div class="flex justify-between border-b pb-2 text-sm"><span class="font-medium text-slate-600">${a.date}</span><div class="font-mono text-xs"><span class="text-emerald-600">IN: ${fmtTime(a.clock_in)}</span> &nbsp;|&nbsp; <span class="text-rose-600">OUT: ${fmtTime(a.clock_out)}</span></div></div>
-            `).join('');
-            document.getElementById('emp-att-history').innerHTML = histHtml || '<p class="text-slate-400 text-sm">Tiada rekod.</p>';
-        };
-
-        window.punch = async (field, label) => {
-            if(!dbSettings.bypassGps && !currentUser.isAdmin) {
-                showInfo("Mengesahkan GPS...", "Sila tunggu sebentar...", "loading", true);
-                if(!navigator.geolocation) return showInfo("GPS Ralat", "Peranti tidak disokong.");
-                navigator.geolocation.getCurrentPosition(async pos => {
-                    const d = getDistance(pos.coords.latitude, pos.coords.longitude, SHOP_LAT, SHOP_LNG);
-                    if(d > ALLOWED_RADIUS) return showInfo("Akses Ditolak", `Jarak anda: ${Math.round(d)}m. Sila masuk kawasan kedai (${ALLOWED_RADIUS}m).`);
-                    closeInfoModal(); doPunch(field, label);
-                }, () => showInfo("GPS Ralat", "Sila benarkan akses lokasi."));
-            } else { doPunch(field, label); }
-        };
-
-        async function doPunch(field, label) {
-            const now = new Date(); const today = getToday(); const id = `${today}_${currentUser.code}`;
-            let data = { [field]: now.toISOString() };
-            if(field === 'clock_in') {
-                data = { ...data, empCode: currentUser.code, empName: currentUser.name, date: today, appealStatus: 'None', appealReason: '', isLate: (now.getHours() > 8 || (now.getHours() === 8 && now.getMinutes() > 15)) };
-            }
-            await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'attendance', id), data, {merge:true});
-            showToast(`Berjaya rekod ${label}`, 'success');
-        }
-
-        window.submitAppeal = async () => {
-            const r = document.getElementById('appeal-reason-input').value;
-            if(!r) return showToast("Sila isi alasan.", "error");
-            await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'attendance', `${getToday()}_${currentUser.code}`), { appealStatus: 'Pending', appealReason: r });
-            showToast("Dihantar!", "success");
-        };
-
-        // ATTENDANCE (ADMIN)
-        window.renderAdminAttendance = () => {
-            const d = document.getElementById('filter-att-date').value;
-            const recs = dbAttendance.filter(a => a.date === d);
-            const tbody = document.getElementById('admin-att-tbody');
-            if(recs.length===0) return tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tiada rekod.</td></tr>`;
-            
-            tbody.innerHTML = recs.map(a => {
-                let st = !a.isLate ? '<span class="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded">On Time</span>' : 
-                    `<div><span class="px-2 py-1 bg-rose-100 text-rose-700 text-xs font-bold rounded">Lewat (Denda RM5)</span>
-                    ${a.appealStatus==='Pending'?`<div class="mt-2 flex gap-1"><button onclick="adminAppeal('${a.id}','Approved')" class="px-2 py-1 bg-emerald-500 text-white text-[10px] rounded">LULUS</button><button onclick="adminAppeal('${a.id}','Ditolak')" class="px-2 py-1 bg-rose-500 text-white text-[10px] rounded">TOLAK</button><span class="text-[10px] italic">\"${a.appealReason}\"</span></div>` : ''}
-                    ${a.appealStatus==='Approved'?`<div class="text-[10px] text-emerald-600 font-bold mt-1">Rayuan Diterima (Denda Batal)</div>` : ''}
-                    ${a.appealStatus==='Ditolak'?`<div class="text-[10px] text-rose-600 font-bold mt-1">Rayuan Ditolak</div>` : ''}</div>`;
-                
-                return `<tr class="hover:bg-slate-50"><td class="p-4 font-bold">${a.empName}</td><td class="p-4 text-center font-mono text-emerald-600">${fmtTime(a.clock_in)}</td><td class="p-4 text-center text-xs font-mono">${fmtTime(a.break_start)} - ${fmtTime(a.break_end)}</td><td class="p-4 text-center font-mono text-rose-600">${fmtTime(a.clock_out)}</td><td class="p-4 text-center text-xs font-mono text-purple-600">${fmtTime(a.ot_start)} - ${fmtTime(a.ot_end)}</td><td class="p-4">${st}</td></tr>`;
-            }).join('');
-        };
-        window.adminAppeal = async (id, st) => { await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'attendance', id), { appealStatus: st }); showToast("Disimpan", "success"); };
-
-        // LEAVES
-        document.getElementById('leave-form')?.addEventListener('submit', async e => {
-            e.preventDefault();
-            const d = { empCode: currentUser.code, empName: currentUser.name, type: document.getElementById('leave-type').value, startDate: document.getElementById('leave-start').value, endDate: document.getElementById('leave-end').value, reason: document.getElementById('leave-reason').value, status: 'Menunggu', appliedAt: new Date().toISOString() };
-            await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', 'leaves'), d);
-            showToast("Permohonan dihantar!", "success"); document.getElementById('leave-form').reset();
-        });
-
-        window.renderLeaves = () => {
-            const recs = currentUser.isAdmin ? dbLeaves : dbLeaves.filter(l => l.empCode === currentUser.code);
-            recs.sort((a,b) => b.appliedAt.localeCompare(a.appliedAt));
-            const tbody = document.getElementById('leave-tbody');
-            if(recs.length===0) return tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tiada rekod.</td></tr>`;
-            
-            tbody.innerHTML = recs.map(l => `
-                <tr class="hover:bg-slate-50">
-                    ${currentUser.isAdmin ? `<td class="p-4 font-bold text-slate-700">${l.empName}</td>` : ''}
-                    <td class="p-4 font-medium">${l.type}</td><td class="p-4 font-mono text-xs">${l.startDate} ke ${l.endDate}</td><td class="p-4 text-xs max-w-[150px] truncate" title="${l.reason}">${l.reason}</td>
-                    <td class="p-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${l.status==='Lulus'?'bg-emerald-100 text-emerald-700':l.status==='Ditolak'?'bg-rose-100 text-rose-700':'bg-amber-100 text-amber-700'}">${l.status}</span></td>
-                    ${currentUser.isAdmin ? `<td class="p-4 text-right flex gap-1 justify-end">
-                        ${l.status==='Menunggu'?`<button onclick="updateLeave('${l.id}','Lulus')" class="p-1.5 bg-emerald-500 text-white rounded">✅</button><button onclick="updateLeave('${l.id}','Ditolak')" class="p-1.5 bg-rose-500 text-white rounded">❌</button>` : `<button onclick="delLeave('${l.id}')" class="p-1.5 bg-slate-200 text-slate-600 rounded hover:bg-rose-500 hover:text-white">🗑️</button>`}
-                    </td>` : ''}
-                </tr>
-            `).join('');
-        };
-        window.updateLeave = async (id, st) => { await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'leaves', id), { status: st }); };
-        window.delLeave = async (id) => { if(confirm("Padam?")) await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'leaves', id)); };
-
-        // SALARIES
-        window.renderSalaryList = () => {
-            const y = document.getElementById('sal-year').value; const m = document.getElementById('sal-month').value;
-            const recs = dbSalaries.filter(s => s.year === y && s.month === m);
-            const grid = document.getElementById('salary-grid');
-            if(recs.length===0) return grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400">Tiada rekod. Tekan \"Bina Pukal\" untuk auto jana.</div>`;
-            
-            grid.innerHTML = recs.map(s => {
-                const g = s.basic + s.allowance + (s.ot_hours*s.ot_rate) + s.bonus;
-                const d = s.kwsp + s.socso + s.eis + s.other_deduct + s.unpaid_deduct + s.late_deduct + s.advance;
-                const net = g - d;
-                return `
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border relative">
-                        <div class="flex justify-between items-start mb-4"><h3 class="font-bold uppercase text-sm leading-tight pr-2">${s.empName}</h3><button onclick="printSlip('${s.id}')" class="text-blue-500 p-1 bg-blue-50 rounded">🖨️</button></div>
-                        <div class="bg-emerald-50 p-3 rounded-xl mb-4 text-center border border-emerald-100"><p class="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Gaji Bersih</p><p class="text-2xl font-black text-emerald-700">RM ${net.toFixed(2)}</p></div>
-                        <div class="flex justify-between text-xs text-slate-500 mb-4 px-1"><span>Kasar: RM ${g.toFixed(2)}</span><span class="text-rose-500">Tolak: RM ${d.toFixed(2)}</span></div>
-                        <div class="grid grid-cols-2 gap-2 mt-4"><button onclick="delSal('${s.id}')" class="py-2 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100">Padam</button></div>
-                    </div>`;
-            }).join('');
-        };
-
-        window.generatePukal = async () => {
-            const y = document.getElementById('sal-year').value; const m = document.getElementById('sal-month').value;
-            if(!confirm(`Bina rekod pukal bulan ${MONTHS[m]} ${y}?`)) return;
-            showToast("Sedang menjana...", "info");
-            
-            for(const e of dbEmployees.filter(x=>x.code!=='ADMIN')) {
-                const id = `sal_${e.code}_${y}_${m}`;
-                
-                // Auto kira
-                let lateCount = 0; let unpaidDays = 0;
-                dbAttendance.forEach(a => { if(a.empCode===e.code && a.isLate && a.appealStatus!=='Approved' && a.date.startsWith(`${y}-${m.padStart(2,'0')}`)) lateCount++; });
-                dbLeaves.forEach(l => { if(l.empCode===e.code && l.status==='Lulus' && l.type==='Cuti Tanpa Gaji' && l.startDate.startsWith(`${y}-${m.padStart(2,'0')}`)) {
-                    const sDate = new Date(l.startDate); const eDate = new Date(l.endDate);
-                    unpaidDays += Math.round((eDate-sDate)/(1000*60*60*24)) + 1;
-                }});
-                
-                const basic = e.basic || 0; const daily = basic / 26;
-                const d = {
-                    empCode: e.code, empName: e.name, icNumber: e.ic || '', year: y, month: m,
-                    basic: basic, allowance: 0, ot_hours: 0, ot_rate: 10, bonus: 0, advance: 0,
-                    kwsp: parseFloat((basic * 0.11).toFixed(2)), socso: 0, eis: 0, other_deduct: 0,
-                    late_deduct: lateCount * 5, unpaid_leave_days: unpaidDays, unpaid_deduct: parseFloat((daily * unpaidDays).toFixed(2)),
+        try {
+            for (const data of febData) {
+                const recordId = `sal_${data.empCode}_2026_2`;
+                const emp = employees.find(e => e.code === data.empCode) || { name: 'Pekerja Tidak Diketahui', ic: '' };
+                const finalData = {
+                    empCode: data.empCode,
+                    empName: emp.name,
+                    icNumber: emp.ic || '',
+                    year: '2026',
+                    month: '2',
+                    basic_salary: data.basic_salary || 0,
+                    allowance: 0, ot_hours: 0, ot_rate: 10, bonus: 0,
+                    advance_payment: data.advance_payment || 0,
+                    kwsp: data.kwsp || 0, socso: 0, eis: 0, other_deductions: 0, late_deduction: 0,
+                    unpaid_leave_days: data.unpaid_leave_days || 0,
+                    unpaid_leave_deduction: data.unpaid_leave_deduction || 0,
                     updatedAt: new Date().toISOString()
                 };
-                await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id), d, {merge:true});
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), finalData, {merge:true});
             }
-            showToast("Berjaya dibina!", "success");
-        };
-
-        // --- IMPORT DATA FEB 2026 KHAS ---
-        window.importFeb2026Data = async () => {
-            if(!confirm("Pasti mahu import data pukal Feb 2026? Ini akan memuat naik profil dan potongan spesifik.")) return;
-            showToast("Sila tunggu...", "info");
-            const dataPukal = [
-                { empCode: 'MZBE012024', advance: 700, kwsp: 198, basic: 1800 },
-                { empCode: 'MZBE092022', advance: 800, kwsp: 231, basic: 2100 },
-                { empCode: 'MZBE102022', advance: 800, kwsp: 220, basic: 2000 },
-                { empCode: 'MZBE072022', advance: 1000, kwsp: 253, basic: 2300 },
-                { empCode: 'MZBE022024', advance: 0, kwsp: 198, basic: 1800 },
-                { empCode: 'MZBE082022', advance: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_deduct: 353.84, basic: 2300 },
-                { empCode: 'MZBE022025', advance: 700, kwsp: 187, basic: 1700 },
-                { empCode: 'MZBE032025', advance: 700, kwsp: 187, basic: 1700 },
-                { empCode: 'MZBE042025', advance: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_deduct: 784.80, basic: 1700 },
-                { empCode: 'MZBEBOSS001', advance: 0, kwsp: 352, basic: 3500 }
-            ];
-
-            for (const d of dataPukal) {
-                const emp = dbEmployees.find(e => e.code === d.empCode) || {name:'-', ic:''};
-                const id = `sal_${d.empCode}_2026_2`;
-                const s = {
-                    empCode: d.empCode, empName: emp.name, icNumber: emp.ic, year: '2026', month: '2',
-                    basic: d.basic, allowance: 0, ot_hours: 0, ot_rate: 10, bonus: 0, advance: d.advance,
-                    kwsp: d.kwsp, socso: 0, eis: 0, other_deduct: 0, late_deduct: 0,
-                    unpaid_leave_days: d.unpaid_leave_days || 0, unpaid_deduct: d.unpaid_deduct || 0,
-                    updatedAt: new Date().toISOString()
-                };
-                await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id), s, {merge:true});
-            }
-            document.getElementById('sal-year').value = '2026'; document.getElementById('sal-month').value = '2';
-            showToast("Data dimuat naik!", "success"); renderSalaryList();
-        };
-
-        window.delSal = async (id) => { if(confirm("Padam?")) await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id)); };
-        
-        window.printSlip = (id) => {
-            const s = dbSalaries.find(x => x.id === id); if(!s) return;
-            const g = s.basic + s.allowance + (s.ot_hours*s.ot_rate) + s.bonus;
-            const d = s.kwsp + s.socso + s.eis + s.other_deduct + s.unpaid_deduct + s.late_deduct + s.advance;
-            const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;color:#333;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small style="color:#666">Slip Gaji ${MONTHS[parseInt(s.month)]} ${s.year}</small></h2><p><b>Nama:</b> ${s.empName}<br><b>IC:</b> ${s.icNumber||'-'}</p><div style="display:flex;gap:20px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${s.basic.toFixed(2)}</span></div><div class="row"><span>Elaun/Bonus</span><span>RM ${(s.allowance+s.bonus).toFixed(2)}</span></div><div class="row"><span>OT</span><span>RM ${(s.ot_hours*s.ot_rate).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Kasar</b><b>RM ${g.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/SOCSO/EIS</span><span>RM ${(s.kwsp+s.socso+s.eis).toFixed(2)}</span></div><div class="row"><span>Cuti Tanpa Gaji</span><span>RM ${s.unpaid_deduct.toFixed(2)}</span></div><div class="row"><span>Denda Lewat</span><span>RM ${s.late_deduct.toFixed(2)}</span></div><div class="row"><span>Advance/Lain</span><span>RM ${(s.advance+s.other_deduct).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Potongan</b><b>RM ${d.toFixed(2)}</b></div></div></div><h2 style="text-align:center;margin-top:40px;background:#eee;padding:15px">GAJI BERSIH: RM ${(g-d).toFixed(2)}</h2></body></html>`;
-            const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
-        };
-
-        // ADMIN SETTINGS
-        function updateSettingsUI() {
-            document.getElementById('att-time-set').textContent = dbSettings.clockOutTime === '17:00' ? '5:00 PM' : '4:30 PM';
-            if(currentUser && currentUser.isAdmin) {
-                document.getElementById('admin-set-time').value = dbSettings.clockOutTime || '17:00';
-                const btn = document.getElementById('btn-bypass-gps');
-                btn.textContent = dbSettings.bypassGps ? 'AKTIF (Tanpa GPS)' : 'MATI (Wajib GPS)';
-                btn.className = `px-4 py-2 rounded-lg font-bold text-sm ${dbSettings.bypassGps ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-600'}`;
-            }
+            showToast('Data gaji Februari 2026 berjaya diimport!', 'success');
+            setYear('2026'); setMonth('2');
+        } catch(err) {
+            showToast('Gagal memuat naik.', 'error');
         }
+    };
 
-        window.saveSettings = async () => {
-            await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'settings', 'config'), { clockOutTime: document.getElementById('admin-set-time').value }, {merge:true});
-            showToast("Waktu dikemaskini", "success");
-        };
-        window.toggleBypass = async () => {
-            await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'settings', 'config'), { bypassGps: !dbSettings.bypassGps }, {merge:true});
-            showToast("Sistem GPS dikemaskini", "success");
-        };
+    const deleteSalary = async (id) => {
+        if(window.confirm("Padam rekod ini?")) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', id));
+        }
+    };
 
-        window.renderAdminEmpList = () => {
-            document.getElementById('emp-tbody').innerHTML = dbEmployees.map(e => `
-                <tr class="hover:bg-slate-50">
-                    <td class="p-4 font-mono font-bold text-slate-600">${e.code}</td><td class="p-4 font-bold">${e.name}</td>
-                    <td class="p-4 text-xs">${e.position} (${e.dept})</td><td class="p-4 font-bold text-emerald-600">RM ${e.basic||0}</td>
-                    <td class="p-4"><button onclick="openEmpModal('${e.code}')" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 rounded text-xs font-bold mr-1">Edit</button>${e.code!=='ADMIN'?`<button onclick="delEmp('${e.code}')" class="px-3 py-1 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded text-xs font-bold">Padam</button>`:''}</td>
-                </tr>
-            `).join('');
-        };
+    const printSlip = (sal, empName, icNumber) => {
+        const gross = (sal?.basic_salary || 0) + (sal?.allowance || 0) + ((sal?.ot_hours || 0)*(sal?.ot_rate || 0)) + (sal?.bonus || 0);
+        const deduct = (sal?.kwsp || 0) + (sal?.socso || 0) + (sal?.eis || 0) + (sal?.other_deductions || 0) + (sal?.unpaid_leave_deduction || 0) + (sal?.late_deduction || 0) + (sal?.advance_payment || 0);
+        const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;color:#333;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small style="color:#666">Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><p><b>Nama:</b> ${empName}<br><b>IC:</b> ${icNumber||'-'}</p><div style="display:flex;gap:20px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${(sal.basic_salary || 0).toFixed(2)}</span></div><div class="row"><span>Elaun/Bonus</span><span>RM ${((sal.allowance || 0)+(sal.bonus || 0)).toFixed(2)}</span></div><div class="row"><span>OT</span><span>RM ${((sal.ot_hours || 0)*(sal.ot_rate || 0)).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/SOCSO/EIS</span><span>RM ${((sal.kwsp || 0)+(sal.socso || 0)+(sal.eis || 0)).toFixed(2)}</span></div><div class="row"><span>Cuti Tanpa Gaji</span><span>RM ${(sal.unpaid_leave_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Denda Lewat</span><span>RM ${(sal.late_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Advance/Lain</span><span>RM ${((sal.advance_payment || 0)+(sal.other_deductions || 0)).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Potongan</b><b>RM ${deduct.toFixed(2)}</b></div></div></div><h2 style="text-align:center;margin-top:40px;background:#eee;padding:15px">GAJI BERSIH: RM ${(gross-deduct).toFixed(2)}</h2></body></html>`;
+        const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
+    };
 
-        window.openEmpModal = (code=null) => {
-            const e = code ? dbEmployees.find(x=>x.code===code) : {code:'',name:'',ic:'',dept:'',position:'',basic:0};
-            document.getElementById('emp-code').value = e.code; document.getElementById('emp-code').disabled = !!code;
-            document.getElementById('emp-name').value = e.name; document.getElementById('emp-ic').value = e.ic;
-            document.getElementById('emp-dept').value = e.dept; document.getElementById('emp-position').value = e.position;
-            document.getElementById('emp-basic').value = e.basic;
-            document.getElementById('modal-emp').classList.remove('hidden');
-        };
+    return (
+        <div className="space-y-6">
+            <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
+                <div className="flex gap-2">
+                    <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50"><option>2024</option><option>2025</option><option>2026</option></select>
+                    <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <button onClick={()=>setShowReport(true)} className="px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition flex items-center gap-2"><IconChartBar size={16}/> Analisa</button>
+                    <button onClick={importFeb2026Data} className="px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition">📥 Data Feb 2026</button>
+                    <button onClick={importPukal} className="px-4 py-2 bg-amber-50 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition">📥 Bina Pukal (Auto)</button>
+                    <button onClick={openAdd} className="px-4 py-2 bg-emerald-50 text-emerald-600 font-bold rounded-lg hover:bg-emerald-100 transition">➕ Tambah Manual</button>
+                </div>
+            </div>
 
-        document.getElementById('form-emp').addEventListener('submit', async e => {
-            e.preventDefault();
-            const c = document.getElementById('emp-code').value.trim().toUpperCase();
-            const d = { code: c, name: document.getElementById('emp-name').value.toUpperCase(), ic: document.getElementById('emp-ic').value, dept: document.getElementById('emp-dept').value, position: document.getElementById('emp-position').value, basic: parseFloat(document.getElementById('emp-basic').value)||0 };
-            await setDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', c), d, {merge:true});
-            showToast("Tersimpan!", "success"); closeModals();
-        });
-        window.delEmp = async (c) => { if(confirm("Padam?")) await deleteDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', c)); };
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredSalaries.length === 0 ? <div className="col-span-full text-center py-10 text-slate-400">Tiada rekod gaji untuk bulan ini. Tekan "Bina Pukal" untuk jana secara automatik.</div> : 
+                filteredSalaries.map(s => {
+                    const gross = (s?.basic_salary || 0) + (s?.allowance || 0) + ((s?.ot_hours || 0)*(s?.ot_rate || 0)) + (s?.bonus || 0);
+                    const deduct = (s?.kwsp || 0) + (s?.socso || 0) + (s?.eis || 0) + (s?.other_deductions || 0) + (s?.unpaid_leave_deduction || 0) + (s?.late_deduction || 0) + (s?.advance_payment || 0);
+                    const net = gross - deduct;
+                    const emp = employees.find(e => e.code === s.empCode);
+                    const displayName = emp ? emp.name : 'Pekerja Tidak Diketahui';
+                    
+                    return (
+                        <div key={s.id} className="bg-white p-5 rounded-2xl shadow-sm border relative">
+                            <div className="flex justify-between items-start mb-4"><h3 className="font-bold text-slate-800 uppercase text-sm leading-tight pr-2">{displayName}</h3><button onClick={()=>printSlip(s, displayName, emp?.ic)} className="text-blue-500 hover:text-blue-700 p-1 bg-blue-50 rounded"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg></button></div>
+                            <div className="bg-emerald-50 p-3 rounded-xl mb-4 text-center border border-emerald-100"><p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Gaji Bersih</p><p className="text-2xl font-black text-emerald-700">RM {net.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                            <div className="flex justify-between text-xs text-slate-500 mb-4 px-1"><span>Kasar: RM {gross.toFixed(2)}</span><span className="text-rose-500">Tolak: RM {deduct.toFixed(2)}</span></div>
+                            <div className="grid grid-cols-2 gap-2 mt-4">
+                                <button onClick={()=>openEdit(s)} className="py-2 bg-slate-100 rounded-lg text-xs font-bold hover:bg-slate-200 text-slate-700">Edit</button>
+                                <button onClick={()=>deleteSalary(s.id)} className="py-2 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100">Padam</button>
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
 
-        // LAPORAN ANALISA
-        window.openReportModal = () => {
-            const y = document.getElementById('sal-year').value;
-            document.getElementById('report-title').textContent = `Laporan Gaji ${y}`;
-            let tGross = 0, tNet = 0, tKwsp = 0, tOT = 0;
-            let mData = [];
-            
-            for(let m=1; m<=12; m++) {
-                const recs = dbSalaries.filter(s => s.year === y && parseInt(s.month) === m);
-                let mg=0, mn=0, mk=0, md=0, mot=0, melaun=0;
-                recs.forEach(s => {
-                    const g = s.basic + s.allowance + (s.ot_hours*s.ot_rate) + s.bonus;
-                    const d = s.kwsp + s.socso + s.eis + s.other_deduct + s.unpaid_deduct + s.late_deduct + s.advance;
-                    mg+=g; mn+=(g-d); mk+=s.kwsp; md+=d; mot+=(s.ot_hours*s.ot_rate); melaun+=s.allowance;
-                });
-                tGross+=mg; tNet+=mn; tKwsp+=mk; tOT+=mot;
-                mData.push(`<tr><td class="p-3 font-bold">${MONTHS[m]}</td><td class="p-3 text-right">RM ${(mg-melaun-mot).toFixed(2)}</td><td class="p-3 text-right">RM ${(melaun+mot).toFixed(2)}</td><td class="p-3 text-right text-rose-500">RM ${md.toFixed(2)}</td><td class="p-3 text-right font-black text-emerald-600">RM ${mn.toFixed(2)}</td></tr>`);
-            }
-            
-            document.getElementById('report-summary').innerHTML = `
-                <div class="bg-blue-50 p-4 rounded-xl"><p class="text-[10px] font-bold text-blue-600 uppercase">J. Kasar (Syarikat)</p><p class="text-xl font-black">RM ${tGross.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                <div class="bg-emerald-50 p-4 rounded-xl"><p class="text-[10px] font-bold text-emerald-600 uppercase">J. Bersih Dibayar</p><p class="text-xl font-black">RM ${tNet.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                <div class="bg-rose-50 p-4 rounded-xl"><p class="text-[10px] font-bold text-rose-600 uppercase">J. KWSP (Pekerja)</p><p class="text-xl font-black">RM ${tKwsp.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                <div class="bg-amber-50 p-4 rounded-xl"><p class="text-[10px] font-bold text-amber-600 uppercase">J. Bayaran OT</p><p class="text-xl font-black">RM ${tOT.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-            `;
-            document.getElementById('report-tbody').innerHTML = mData.join('');
-            document.getElementById('modal-report').classList.remove('hidden');
-        };
+            {modalForm && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fade shadow-2xl">
+                        <div className="sticky top-0 bg-white px-6 py-4 border-b flex justify-between items-center z-10"><h2 className="font-bold text-lg text-slate-800">{modalForm.mode==='add'?'Tambah':'Edit'} Gaji</h2><button type="button" onClick={closeM} className="p-2 bg-slate-100 rounded-full text-slate-600">✕</button></div>
+                        <form onSubmit={saveSalary} className="p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {modalForm.mode === 'add' && <div><label className="text-xs font-bold text-slate-500 block mb-1">Pekerja</label><select className="w-full p-2 border rounded outline-none font-bold bg-slate-50" value={modalForm.data.empCode} onChange={e=>handleFormChange(e, 'empCode')}>{employees.filter(e=>(e?.code || '')!=='ADMIN').map(e=><option key={e.code} value={e.code}>{e.name}</option>)}</select></div>}
+                                <div className="col-span-full"><h3 className="bg-slate-100 p-2 rounded text-sm font-bold mt-2">💰 Pendapatan</h3></div>
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 block">Gaji Asas (RM)</label>
+                                    <input type="number" step="0.01" className="w-full p-2 border rounded font-bold" value={modalForm.data.basic_salary} onChange={e=>handleFormChange(e, 'basic_salary')} required/>
+                                    <p className="text-[10px] text-blue-600 font-bold mt-1">Kadar Sehari: RM {(parseFloat(modalForm.data.basic_salary||0)/26).toFixed(2)}</p>
+                                </div>
+                                <div><label className="text-xs font-bold text-slate-500 block">Elaun / Bonus (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded" value={modalForm.data.allowance} onChange={e=>handleFormChange(e, 'allowance')}/></div>
+                                <div><label className="text-xs font-bold text-slate-500 block">Jam OT</label><input type="number" step="0.5" className="w-full p-2 border rounded" value={modalForm.data.ot_hours} onChange={e=>handleFormChange(e, 'ot_hours')}/></div>
+                                <div><label className="text-xs font-bold text-slate-500 block">Kadar OT (RM/jam)</label><input type="number" step="0.01" className="w-full p-2 border rounded" value={modalForm.data.ot_rate} onChange={e=>handleFormChange(e, 'ot_rate')}/></div>
+                                
+                                <div className="col-span-full"><h3 className="bg-slate-100 p-2 rounded text-sm font-bold mt-2">📉 Potongan & Penalti</h3></div>
+                                <div><label className="text-xs font-bold text-slate-500 block">KWSP (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded" value={modalForm.data.kwsp} onChange={e=>handleFormChange(e, 'kwsp')}/></div>
+                                <div><label className="text-xs font-bold text-slate-500 block">Advance (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded text-rose-600 bg-rose-50" value={modalForm.data.advance_payment} onChange={e=>handleFormChange(e, 'advance_payment')}/></div>
+                                <div><label className="text-xs font-bold text-slate-500 block">Lain-lain (SOCSO/EIS) (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded text-rose-600 bg-rose-50" value={modalForm.data.other_deductions} onChange={e=>handleFormChange(e, 'other_deductions')}/></div>
+                                <div><label className="text-xs font-bold text-slate-500 block">Denda Lewat (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded text-rose-600 bg-rose-50 font-bold" value={modalForm.data.late_deduction} onChange={e=>handleFormChange(e, 'late_deduction')}/></div>
+                                <div><label className="text-xs font-bold text-slate-500 block">Hari Cuti Tanpa Gaji</label><input type="number" min="0" className="w-full p-2 border rounded bg-slate-50" value={modalForm.data.unpaid_leave_days} onChange={e=>handleFormChange(e, 'unpaid_leave_days')}/></div>
+                                <div><label className="text-xs font-bold text-slate-500 block">Potongan Cuti (RM) - Auto</label><input type="number" step="0.01" readOnly className="w-full p-2 border rounded text-rose-600 bg-slate-100 font-bold cursor-not-allowed" value={modalForm.data.unpaid_leave_deduction} /></div>
+                            </div>
+                            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition">Simpan Rekod Gaji</button>
+                        </form>
+                    </div>
+                </div>
+            )}
 
-        window.printReport = () => {
-            const html = `<html><head><title>Laporan</title><style>body{font-family:sans-serif;padding:40px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ccc;padding:10px;text-align:right}th:first-child,td:first-child{text-align:left}th{background:#eee}</style></head><body><center><h2>Laporan Kewangan Gaji MBE (${document.getElementById('sal-year').value})</h2></center>` + document.getElementById('report-summary').innerHTML + '<table>' + document.getElementById('report-tbody').parentElement.innerHTML + '</table></body></html>`;
-            const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
-        };
-    </script>
-</body>
-</html>
+            {/* Modal Laporan Analisa */}
+            {showReport && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-fade shadow-2xl p-6">
+                        <div className="flex justify-between items-center mb-6"><h2 className="font-black text-2xl text-slate-800">📊 Laporan {year}</h2><button onClick={()=>setShowReport(false)} className="p-2 bg-slate-100 rounded-full">✕</button></div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div className="bg-blue-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-blue-600 uppercase">J. Kasar Setahun</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+(s?.basic_salary||0)+(s?.allowance||0)+((s?.ot_hours||0)*(s?.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                            <div className="bg-emerald-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-emerald-600 uppercase">J. Bersih Setahun</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+((s?.basic_salary||0)+(s?.allowance||0)+((s?.ot_hours||0)*(s?.ot_rate||0))-((s?.kwsp||0)+(s?.socso||0)+(s?.eis||0)+(s?.other_deductions||0)+(s?.unpaid_leave_deduction||0)+(s?.advance_payment||0)+(s?.late_deduction||0))),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                            <div className="bg-rose-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-rose-600 uppercase">J. Potongan KWSP</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+(s?.kwsp||0),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                            <div className="bg-amber-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-amber-600 uppercase">J. Bayaran OT</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+((s?.ot_hours||0)*(s?.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                        </div>
+                        <p className="text-sm text-center text-slate-500 italic">Gunakan sistem luaran untuk cetakan terperinci.</p>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ModuleAdmin({ employees, settings, showToast }) {
+    const [empForm, setEmpForm] = useState(null);
+
+    const saveSettings = async (time, bypass) => {
+        try {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), { clockOutTime: time, bypassGps: bypass }, {merge:true});
+            showToast("Tetapan dikemaskini", "success");
+        } catch(e) { showToast("Gagal menyimpan tetapan", "error"); }
+    };
+
+    const saveEmp = async (e) => {
+        e.preventDefault();
+        try {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', empForm.code.toUpperCase()), { ...empForm, code: empForm.code.toUpperCase(), basic: parseFloat(empForm.basic)||0 }, {merge:true});
+            showToast("Profil Pekerja Disimpan", "success"); setEmpForm(null);
+        } catch(err) { showToast("Gagal menyimpan profil", "error"); }
+    };
+
+    const deleteEmp = async (code) => {
+        if(window.confirm("Padam pekerja ini?")) {
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', code));
+        }
+    };
+
+    return (
+        <div className="space-y-6 max-w-4xl mx-auto">
+            <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-6">
+                <h2 className="font-bold text-lg flex items-center gap-2"><IconSettings size={20}/> Tetapan Sistem</h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p className="font-bold text-slate-800 text-sm mb-1">Waktu Balik Rasmi</p>
+                        <p className="text-xs text-slate-500 mb-3">Waktu minimum untuk Clock Out.</p>
+                        <select value={settings.clockOutTime || '17:00'} onChange={e=>saveSettings(e.target.value, settings.bypassGps)} className="w-full p-2 font-bold bg-white border rounded-lg outline-none focus:border-blue-500"><option value="16:30">4:30 PM</option><option value="17:00">5:00 PM</option></select>
+                    </div>
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                        <p className="font-bold text-slate-800 text-sm mb-1">Bypass GPS</p>
+                        <p className="text-xs text-slate-500 mb-3">Benarkan pekerja Clock In tanpa sah lokasi.</p>
+                        <button onClick={()=>saveSettings(settings.clockOutTime, !settings.bypassGps)} className={`w-full py-2 rounded-lg font-bold text-sm transition ${settings.bypassGps ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-600'}`}>{settings.bypassGps ? 'GPS DIBENARKAN (Aktif)' : 'GPS DIWAJIBKAN (Mati)'}</button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
+                <div className="p-4 bg-slate-50 border-b flex justify-between items-center"><h3 className="font-bold text-slate-700">Senarai Pekerja</h3><button onClick={()=>setEmpForm({code:'',name:'',dept:'',position:'',basic:0,ic:''})} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-blue-700">+ Tambah Pekerja</button></div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-white text-xs text-slate-500 uppercase border-b"><tr><th className="p-4">Kod Login</th><th className="p-4">Nama</th><th className="p-4">Jawatan</th><th className="p-4">Gaji Asas</th><th className="p-4">Tindakan</th></tr></thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {employees.map(e => (
+                                <tr key={e.code} className="hover:bg-slate-50">
+                                    <td className="p-4 font-mono font-bold text-slate-600">{e?.code || ''}</td>
+                                    <td className="p-4 font-bold">{e?.name || ''}</td>
+                                    <td className="p-4 text-xs">{e?.position || ''} ({e?.dept || ''})</td>
+                                    <td className="p-4 text-emerald-600 font-bold">RM {e?.basic || 0}</td>
+                                    <td className="p-4 flex gap-2">
+                                        <button onClick={()=>setEmpForm(e)} className="px-3 py-1 bg-slate-200 hover:bg-slate-300 rounded text-xs font-bold text-slate-700">Edit</button>
+                                        {(e?.code || '') !== 'ADMIN' && <button onClick={()=>deleteEmp(e.code)} className="px-3 py-1 bg-rose-50 hover:bg-rose-100 rounded text-xs font-bold text-rose-600">Padam</button>}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {empForm && (
+                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-fade">
+                        <h2 className="font-black text-xl mb-4 border-b pb-2 text-slate-800">Profil Pekerja</h2>
+                        <form onSubmit={saveEmp} className="space-y-4">
+                            <div><label className="text-xs font-bold text-slate-600">Kod Login (Unik)</label><input type="text" disabled={empForm.code !== '' && employees.some(e=>(e?.code || '')===empForm.code)} value={empForm.code} onChange={e=>setEmpForm({...empForm,code:e.target.value})} className="w-full p-2 border rounded uppercase bg-slate-50 font-mono focus:border-blue-500 outline-none" required/></div>
+                            <div><label className="text-xs font-bold text-slate-600">Nama Penuh</label><input type="text" value={empForm.name} onChange={e=>setEmpForm({...empForm,name:e.target.value})} className="w-full p-2 border rounded uppercase focus:border-blue-500 outline-none" required/></div>
+                            <div><label className="text-xs font-bold text-slate-600">No IC</label><input type="text" value={empForm.ic} onChange={e=>setEmpForm({...empForm,ic:e.target.value})} className="w-full p-2 border rounded focus:border-blue-500 outline-none"/></div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <div><label className="text-xs font-bold text-slate-600">Jabatan</label><input type="text" value={empForm.dept} onChange={e=>setEmpForm({...empForm,dept:e.target.value})} className="w-full p-2 border rounded focus:border-blue-500 outline-none" required/></div>
+                                <div><label className="text-xs font-bold text-slate-600">Jawatan</label><input type="text" value={empForm.position} onChange={e=>setEmpForm({...empForm,position:e.target.value})} className="w-full p-2 border rounded focus:border-blue-500 outline-none" required/></div>
+                            </div>
+                            <div><label className="text-xs font-bold text-emerald-600">Gaji Asas Bulanan (RM)</label><input type="number" step="0.01" value={empForm.basic} onChange={e=>setEmpForm({...empForm,basic:e.target.value})} className="w-full p-2 border-2 border-emerald-200 rounded outline-none focus:border-emerald-500 font-bold" required/></div>
+                            <div className="flex gap-2 pt-4"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow">Simpan</button><button type="button" onClick={()=>setEmpForm(null)} className="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Batal</button></div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
