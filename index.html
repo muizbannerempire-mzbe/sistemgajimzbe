@@ -36,8 +36,10 @@
         const { useState, useEffect, useCallback } = React;
 
         // --- PEMUATAN FIREBASE ---
+        let isAppInitialized = false;
         const waitForFirebase = setInterval(() => {
-            if (window.fbModules) {
+            if (window.fbModules && !isAppInitialized) {
+                isAppInitialized = true;
                 clearInterval(waitForFirebase);
                 initApp();
             }
@@ -89,16 +91,33 @@
             };
             const MONTHS = ['', 'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
 
-            // --- KOMPONEN IKON ---
+            // --- KOMPONEN BERSAMA (GLOBAL) ---
+            function BrandLogo({ size = "large" }) {
+                return (
+                    <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-8' : 'mb-0 shrink-0'}`}>
+                        <img src="./logo.png" alt="MBE" style={{ height: size === 'large' ? '120px' : '42px', width: 'auto', objectFit: 'contain' }} className={size === 'large' ? 'mb-3' : 'bg-white rounded p-1'} onError={e => { e.target.onerror=null; e.target.style.display='none'; }} />
+                        {size === 'large' && <div className="text-center"><h1 className="text-2xl font-black text-slate-800">MUIZ BANNER</h1><p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Empire</p></div>}
+                    </div>
+                );
+            }
+
+            function TabBtn({ label, icon, active, onClick }) {
+                return (
+                    <button onClick={onClick} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${active ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
+                        <span>{icon}</span> {label}
+                    </button>
+                );
+            }
+
             const Icons = {
-                LogOut: () => <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
-                Clock: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
-                Alert: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
-                Check: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
-                MapPin: () => <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
-                Trash: () => <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
-                Settings: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-                ChartBar: () => <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+                LogOut: ({size=18, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+                Clock: ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+                Alert: ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>,
+                Check: ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
+                MapPin: ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>,
+                Trash: ({size=16, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
+                Settings: ({size=20, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+                ChartBar: ({size=20, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
             };
 
             // ==========================================
@@ -127,7 +146,14 @@
 
                 // 1. Inisialisasi Auth Firebase
                 useEffect(() => {
-                    signInAnonymously(auth).catch(e => console.error("Auth Anon Gagal:", e));
+                    const doAuth = async () => {
+                        try {
+                           await signInAnonymously(auth);
+                        } catch (e) {
+                            console.error("Auth Anon Gagal:", e);
+                        }
+                    };
+                    doAuth();
                     const unsub = onAuthStateChanged(auth, user => { setAuthUser(user); });
                     return () => unsub();
                 }, []);
@@ -140,9 +166,18 @@
                     const unsubEmp = onSnapshot(collection(db, ...bPath, 'employees'), snap => {
                         const emps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                         if(emps.length === 0) {
+                            // DATA PROFIL PEKERJA LENGKAP SEPERTI DIMINTA
                             const defaultEmps = [
-                                { code: 'MZBE012024', name: 'Ahmad Bukharie', dept: 'Pengeluaran', position: 'Operator', basic: 1800, ic: '040421110053' },
-                                { code: 'MZBE092022', name: 'Ammar Zakwan', dept: 'Operasi', position: 'Pengurus', basic: 2100, ic: '980416036979' },
+                                { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '040421110053' },
+                                { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', basic: 2100, ic: '980416036979' },
+                                { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', basic: 2000, ic: '000917110384' },
+                                { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', basic: 2300, ic: '971017385034' },
+                                { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '' },
+                                { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', basic: 2300, ic: '000417080975' },
+                                { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '070909030855' },
+                                { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '010815110403' },
+                                { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', basic: 1700, ic: '930905115074' },
+                                { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' },
                                 { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
                             ];
                             defaultEmps.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e));
@@ -169,7 +204,7 @@
                         <header className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-4 shadow-lg z-20">
                             <div className="max-w-7xl mx-auto flex justify-between items-center">
                                 <div className="flex items-center gap-3">
-                                    <div className="bg-white p-1 rounded-lg"><img src="logo.png" alt="MBE" className="h-8 w-auto object-contain" onError={(e)=>{e.target.style.display='none'}}/></div>
+                                    <BrandLogo size="small" />
                                     <div><h1 className="font-bold leading-tight">HRMS Pintar MBE</h1><p className="text-[10px] text-slate-300">{currentUser.name}</p></div>
                                 </div>
                                 <button onClick={() => setCurrentUser(null)} className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 px-3 py-1.5 rounded-lg text-sm font-bold transition"><Icons.LogOut/> Keluar</button>
@@ -181,8 +216,8 @@
                             <div className="max-w-7xl mx-auto px-4 flex gap-2">
                                 <TabBtn label="Kehadiran" icon="⏱️" active={activeTab === 'attendance'} onClick={() => setActiveTab('attendance')} />
                                 <TabBtn label="Cuti" icon="🏖️" active={activeTab === 'leaves'} onClick={() => setActiveTab('leaves')} />
-                                {currentUser.code === 'ADMIN' && <TabBtn label="Gaji & Laporan" icon="💰" active={activeTab === 'salary'} onClick={() => setActiveTab('salary')} />}
-                                {currentUser.code === 'ADMIN' && <TabBtn label="Tetapan Admin" icon="⚙️" active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} />}
+                                {currentUser?.code === 'ADMIN' && <TabBtn label="Gaji & Laporan" icon="💰" active={activeTab === 'salary'} onClick={() => setActiveTab('salary')} />}
+                                {currentUser?.code === 'ADMIN' && <TabBtn label="Tetapan Admin" icon="⚙️" active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} />}
                             </div>
                         </div>
 
@@ -191,8 +226,8 @@
                             <div className="max-w-7xl mx-auto animate-fade">
                                 {activeTab === 'attendance' && <ModuleAttendance user={currentUser} attendances={attendances} leaves={leaves} settings={settings} db={db} appId={APP_ID} showToast={showToast} />}
                                 {activeTab === 'leaves' && <ModuleLeaves user={currentUser} leaves={leaves} employees={employees} db={db} appId={APP_ID} showToast={showToast} />}
-                                {activeTab === 'salary' && currentUser.code === 'ADMIN' && <ModuleSalary attendances={attendances} leaves={leaves} salaries={salaries} employees={employees} db={db} appId={APP_ID} showToast={showToast} />}
-                                {activeTab === 'admin' && currentUser.code === 'ADMIN' && <ModuleAdmin employees={employees} settings={settings} db={db} appId={APP_ID} showToast={showToast} />}
+                                {activeTab === 'salary' && currentUser?.code === 'ADMIN' && <ModuleSalary attendances={attendances} leaves={leaves} salaries={salaries} employees={employees} db={db} appId={APP_ID} showToast={showToast} />}
+                                {activeTab === 'admin' && currentUser?.code === 'ADMIN' && <ModuleAdmin employees={employees} settings={settings} db={db} appId={APP_ID} showToast={showToast} />}
                             </div>
                         </main>
 
@@ -206,12 +241,6 @@
                 );
             }
 
-            const TabBtn = ({ label, icon, active, onClick }) => (
-                <button onClick={onClick} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${active ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                    <span>{icon}</span> {label}
-                </button>
-            );
-
             // ==========================================
             // KOMPONEN: LOG MASUK
             // ==========================================
@@ -222,12 +251,10 @@
                 const handleSubmit = (e) => {
                     e.preventDefault();
                     const cleanUser = username.trim().toUpperCase();
-                    // Jika Admin
                     if(cleanUser === 'ADMIN' && password === 'admin123') {
                         onLogin({ code: 'ADMIN', name: 'Administrator' }); return;
                     }
-                    // Jika Pekerja Biasa (Password default ialah Kod Pekerja)
-                    const emp = employees.find(e => e.code === cleanUser);
+                    const emp = employees.find(e => (e?.code || '') === cleanUser);
                     if(emp && password === emp.code) {
                         onLogin(emp);
                     } else {
@@ -238,10 +265,7 @@
                 return (
                     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
                         <div className="glass-card rounded-3xl p-8 w-full max-w-md animate-fade border border-white/50">
-                            <div className="text-center mb-8">
-                                <h1 className="text-3xl font-black text-slate-800 mb-1">MBE HRMS</h1>
-                                <p className="text-slate-500 text-sm font-medium">Sistem Pengurusan Pekerja</p>
-                            </div>
+                            <BrandLogo size="large" />
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Kod Pekerja</label>
@@ -264,19 +288,17 @@
             // MODUL 1: KEHADIRAN (PUNCH CARD)
             // ==========================================
             function ModuleAttendance({ user, attendances, leaves, settings, db, appId, showToast }) {
-                const isAdmin = user.code === 'ADMIN';
+                const isAdmin = user?.code === 'ADMIN';
                 const today = getTodayString();
                 const [filterDate, setFilterDate] = useState(today);
                 const [modalGps, setModalGps] = useState(null);
                 const [appealReason, setAppealReason] = useState('');
 
-                const myAtt = attendances.find(a => a.date === today && a.empCode === user.code) || {};
-                const isOnLeave = leaves.some(l => l.empCode === user.code && l.status === 'Lulus' && today >= l.startDate && today <= l.endDate);
+                const myAtt = attendances.find(a => (a?.date || '') === today && (a?.empCode || '') === user.code) || {};
+                const isOnLeave = leaves.some(l => (l?.empCode || '') === user.code && (l?.status || '') === 'Lulus' && today >= (l?.startDate || '') && today <= (l?.endDate || ''));
 
-                // --- LOGIK GEOFENCING ---
                 const verifyLocationAndExecute = (actionName, callback) => {
                     if (settings.bypassGps || isAdmin) { callback(); return; }
-                    
                     setModalGps({ type: 'loading', msg: 'Sedang mencari isyarat GPS...' });
                     if (!navigator.geolocation) { setModalGps({ type: 'error', msg: 'Peranti anda tidak menyokong GPS.' }); return; }
 
@@ -299,7 +321,6 @@
                     
                     if(field === 'clock_in') {
                         data.empCode = user.code; data.empName = user.name; data.date = today;
-                        // Semak Lewat (> 8:15 AM)
                         data.isLate = (now.getHours() > 8 || (now.getHours() === 8 && now.getMinutes() > 15));
                         data.appealStatus = 'None'; data.appealReason = '';
                     }
@@ -328,20 +349,18 @@
                         <button disabled={isDisabled} onClick={() => verifyLocationAndExecute(label, () => punch(field))} 
                             className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all duration-300 shadow-sm border ${isDisabled ? 'bg-slate-50 text-slate-400 border-slate-100 cursor-not-allowed' : `${colorClass} text-white border-transparent active:scale-95 shadow-md hover:shadow-lg`}`}>
                             <span className="font-bold text-xs uppercase tracking-wider">{label}</span>
-                            <span className={`text-[11px] font-mono ${isDone ? 'bg-black/10 text-slate-600 px-2 py-0.5 rounded-md' : ''}`}>{isDone ? formatTimeDisplay(myAtt[field]) : '--:--'}</span>
+                            <span className={`text-[11px] font-mono ${isDone ? 'bg-black/10 text-white px-2 py-0.5 rounded-md' : ''}`}>{isDone ? formatTimeDisplay(myAtt[field]) : '--:--'}</span>
                         </button>
                     );
                 };
 
-                // Paparan Pekerja Biasa
                 if (!isAdmin) {
                     return (
                         <div className="space-y-6 max-w-3xl mx-auto">
-                            {/* Modal GPS */}
                             {modalGps && (
                                 <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                                     <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-fade">
-                                        {modalGps.type === 'loading' ? <div className="loader mx-auto mb-4 border-slate-200 border-t-blue-500"></div> : <Icons.MapPin className="mx-auto mb-4 text-rose-500 h-12 w-12"/>}
+                                        {modalGps.type === 'loading' ? <div className="loader mx-auto mb-4 border-slate-200 border-t-blue-500"></div> : <Icons.MapPin className="mx-auto mb-4 text-rose-500"/>}
                                         <h3 className="font-bold text-lg mb-2 text-slate-800">{modalGps.type === 'loading' ? 'Mengesahkan Lokasi...' : 'Akses Ditolak'}</h3>
                                         <p className="text-sm text-slate-500 mb-6">{modalGps.msg}</p>
                                         {modalGps.type === 'error' && <button onClick={()=>setModalGps(null)} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Tutup</button>}
@@ -386,11 +405,10 @@
                                 </div>
                             )}
 
-                            {/* Sejarah Sendiri */}
                             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                                 <div className="p-4 border-b bg-slate-50"><h3 className="font-bold text-slate-700">Sejarah Terkini</h3></div>
                                 <div className="p-4 space-y-3">
-                                    {attendances.filter(a => a.empCode === user.code).sort((a,b) => b.date.localeCompare(a.date)).slice(0,7).map(a => (
+                                    {attendances.filter(a => (a?.empCode || '') === user.code).sort((a,b) => (b?.date || '').localeCompare(a?.date || '')).slice(0,7).map(a => (
                                         <div key={a.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0">
                                             <span className="font-medium text-slate-600">{a.date}</span>
                                             <div className="flex gap-3 text-xs font-mono">
@@ -406,7 +424,7 @@
                 }
 
                 // Paparan Admin
-                const filteredAtt = attendances.filter(a => a.date === filterDate);
+                const filteredAtt = attendances.filter(a => (a?.date || '') === filterDate);
                 return (
                     <div className="space-y-6">
                         <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-wrap justify-between items-center gap-4">
@@ -457,7 +475,7 @@
             // MODUL 2: CUTI
             // ==========================================
             function ModuleLeaves({ user, leaves, employees, db, appId, showToast }) {
-                const isAdmin = user.code === 'ADMIN';
+                const isAdmin = user?.code === 'ADMIN';
                 const [form, setForm] = useState({ type: 'Cuti Bergaji', startDate: '', endDate: '', reason: '' });
 
                 const submitForm = async (e) => {
@@ -475,8 +493,8 @@
                     showToast(`Status ditukar ke ${status}`, "success");
                 };
 
-                const myLeaves = isAdmin ? leaves : leaves.filter(l => l.empCode === user.code);
-                myLeaves.sort((a,b) => b.appliedAt.localeCompare(a.appliedAt));
+                const myLeaves = isAdmin ? leaves : leaves.filter(l => (l?.empCode || '') === user.code);
+                myLeaves.sort((a,b) => (b?.appliedAt || '').localeCompare(a?.appliedAt || ''));
 
                 return (
                     <div className="space-y-6 max-w-5xl mx-auto">
@@ -539,19 +557,18 @@
             function ModuleSalary({ attendances, leaves, salaries, employees, db, appId, showToast }) {
                 const [year, setYear] = useState(new Date().getFullYear().toString());
                 const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
-                const [modalForm, setModalForm] = useState(null); // { mode: 'add'/'edit', data: {} }
+                const [modalForm, setModalForm] = useState(null); 
                 const [showReport, setShowReport] = useState(false);
                 
-                const filteredSalaries = salaries.filter(s => s.year === year && s.month === month);
+                const filteredSalaries = salaries.filter(s => (s?.year || '') === year && (s?.month || '') === month);
 
                 const getDefaultsFromEmp = (empCode) => {
-                    const emp = employees.find(e => e.code === empCode);
+                    const emp = employees.find(e => (e?.code || '') === empCode);
                     if(!emp) return {};
                     
-                    // Auto-kira potongan lewat & Cuti (berdasarkan bulan dipilih)
                     let lateCount = 0; let unpaidCount = 0;
-                    attendances.forEach(a => { if(a.empCode === empCode && a.isLate && a.appealStatus !== 'Approved' && a.date.startsWith(`${year}-${month.padStart(2,'0')}`)) lateCount++; });
-                    leaves.forEach(l => { if(l.empCode === empCode && l.status === 'Lulus' && l.type === 'Cuti Tanpa Gaji' && l.startDate.startsWith(`${year}-${month.padStart(2,'0')}`)) {
+                    attendances.forEach(a => { if((a?.empCode || '') === empCode && a?.isLate && a?.appealStatus !== 'Approved' && (a?.date || '').startsWith(`${year}-${month.padStart(2,'0')}`)) lateCount++; });
+                    leaves.forEach(l => { if((l?.empCode || '') === empCode && l?.status === 'Lulus' && l?.type === 'Cuti Tanpa Gaji' && (l?.startDate || '').startsWith(`${year}-${month.padStart(2,'0')}`)) {
                         const s = new Date(l.startDate); const e = new Date(l.endDate);
                         unpaidCount += Math.round((e-s)/(1000*60*60*24)) + 1;
                     }});
@@ -560,12 +577,15 @@
                     const dailyRate = basic / 26;
                     const unpaidDeduct = dailyRate * unpaidCount;
                     const lateDeduct = lateCount * 5;
-                    const kwsp = basic * 0.11; // Contoh kiraan kasar 11%
+                    const kwsp = basic * 0.11; 
 
                     return { basic_salary: basic, unpaid_leave_days: unpaidCount, unpaid_leave_deduction: parseFloat(unpaidDeduct.toFixed(2)), late_deduction: lateDeduct, kwsp: parseFloat(kwsp.toFixed(2)), allowance:0, ot_hours:0, ot_rate:10, bonus:0, advance_payment:0, socso:0, eis:0, other_deductions:0 };
                 };
 
-                const openAdd = () => setModalForm({ mode: 'add', data: { empCode: employees.find(e=>e.code!=='ADMIN')?.code, ...getDefaultsFromEmp(employees.find(e=>e.code!=='ADMIN')?.code) } });
+                const openAdd = () => {
+                    const firstEmpCode = employees.find(e=>(e?.code || '') !== 'ADMIN')?.code;
+                    setModalForm({ mode: 'add', data: { empCode: firstEmpCode, ...getDefaultsFromEmp(firstEmpCode) } });
+                };
                 const openEdit = (sal) => setModalForm({ mode: 'edit', data: { ...sal } });
                 const closeM = () => setModalForm(null);
 
@@ -586,11 +606,11 @@
 
                 const saveSalary = async (e) => {
                     e.preventDefault(); const d = modalForm.data;
-                    const emp = employees.find(x => x.code === d.empCode);
+                    const emp = employees.find(x => (x?.code || '') === d.empCode);
                     const recordId = modalForm.mode === 'edit' ? d.id : `sal_${d.empCode}_${year}_${month}`;
                     
                     const finalData = {
-                        empCode: d.empCode, empName: emp.name, icNumber: emp.ic || '', year, month,
+                        empCode: d.empCode, empName: emp?.name || '', icNumber: emp?.ic || '', year, month,
                         basic_salary: parseFloat(d.basic_salary)||0, allowance: parseFloat(d.allowance)||0, ot_hours: parseFloat(d.ot_hours)||0, ot_rate: parseFloat(d.ot_rate)||0, bonus: parseFloat(d.bonus)||0, advance_payment: parseFloat(d.advance_payment)||0,
                         kwsp: parseFloat(d.kwsp)||0, socso: parseFloat(d.socso)||0, eis: parseFloat(d.eis)||0, other_deductions: parseFloat(d.other_deductions)||0, late_deduction: parseFloat(d.late_deduction)||0,
                         unpaid_leave_days: parseInt(d.unpaid_leave_days)||0, unpaid_leave_deduction: parseFloat(d.unpaid_leave_deduction)||0,
@@ -604,7 +624,7 @@
                 const importPukal = async () => {
                     if(!confirm(`Bina rekod gaji pukal untuk bulan ${MONTHS[parseInt(month)]} ${year}?`)) return;
                     showToast('Membina rekod...', 'info');
-                    for (const emp of employees.filter(e => e.code !== 'ADMIN')) {
+                    for (const emp of employees.filter(e => (e?.code || '') !== 'ADMIN')) {
                         const id = `sal_${emp.code}_${year}_${month}`;
                         const def = getDefaultsFromEmp(emp.code);
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', id), { empCode: emp.code, empName: emp.name, icNumber: emp.ic||'', year, month, ...def, updatedAt: new Date().toISOString() }, {merge:true});
@@ -613,9 +633,10 @@
                 };
 
                 const importFeb2026Data = async () => {
-                    if(!confirm("Anda pasti mahu import data Gaji Februari 2026 yang spesifik? Ini akan merekodkan data khusus ke dalam bulan Februari.")) return;
+                    if(!confirm("Anda pasti mahu import data Gaji Februari 2026 secara spesifik? Rekod ini akan menggantikan rekod sedia ada bagi bulan Februari.")) return;
                     showToast('Memuat naik data Februari 2026...', 'info');
                     
+                    // DATA SPESIFIK MENGIKUT ARAHAN PENGGUNA
                     const febData = [
                         { empCode: 'MZBE012024', advance_payment: 700, kwsp: 198, basic_salary: 1800 },
                         { empCode: 'MZBE092022', advance_payment: 800, kwsp: 231, basic_salary: 2100 },
@@ -630,7 +651,7 @@
                     ];
                     
                     for (const data of febData) {
-                        const emp = employees.find(e => e.code === data.empCode) || { name: 'Pekerja Tidak Diketahui', ic: '' };
+                        const emp = employees.find(e => (e?.code || '') === data.empCode) || { name: 'Pekerja Tidak Diketahui', ic: '' };
                         const recordId = `sal_${data.empCode}_2026_2`;
                         
                         const finalData = {
@@ -640,16 +661,9 @@
                             year: '2026',
                             month: '2',
                             basic_salary: data.basic_salary || 0,
-                            allowance: 0,
-                            ot_hours: 0,
-                            ot_rate: 10,
-                            bonus: 0,
+                            allowance: 0, ot_hours: 0, ot_rate: 10, bonus: 0,
                             advance_payment: data.advance_payment || 0,
-                            kwsp: data.kwsp || 0,
-                            socso: 0,
-                            eis: 0,
-                            other_deductions: 0,
-                            late_deduction: 0, // Denda lewat auto-kira tidak dimasukkan untuk elak kacau data lepas
+                            kwsp: data.kwsp || 0, socso: 0, eis: 0, other_deductions: 0, late_deduction: 0,
                             unpaid_leave_days: data.unpaid_leave_days || 0,
                             unpaid_leave_deduction: data.unpaid_leave_deduction || 0,
                             updatedAt: new Date().toISOString()
@@ -658,14 +672,13 @@
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), finalData, {merge:true});
                     }
                     showToast('Data gaji Februari 2026 berjaya diimport!', 'success');
-                    setYear('2026');
-                    setMonth('2');
+                    setYear('2026'); setMonth('2');
                 };
 
                 const printSlip = (sal) => {
-                    const gross = sal.basic_salary + sal.allowance + (sal.ot_hours*sal.ot_rate) + sal.bonus;
-                    const deduct = sal.kwsp + sal.socso + sal.eis + sal.other_deductions + sal.unpaid_leave_deduction + sal.late_deduction + sal.advance_payment;
-                    const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;color:#333;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small style="color:#666">Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><p><b>Nama:</b> ${sal.empName}<br><b>IC:</b> ${sal.icNumber||'-'}</p><div style="display:flex;gap:20px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${sal.basic_salary.toFixed(2)}</span></div><div class="row"><span>Elaun/Bonus</span><span>RM ${(sal.allowance+sal.bonus).toFixed(2)}</span></div><div class="row"><span>OT</span><span>RM ${(sal.ot_hours*sal.ot_rate).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/SOCSO/EIS</span><span>RM ${(sal.kwsp+sal.socso+sal.eis).toFixed(2)}</span></div><div class="row"><span>Cuti Tanpa Gaji</span><span>RM ${sal.unpaid_leave_deduction.toFixed(2)}</span></div><div class="row"><span>Denda Lewat</span><span>RM ${sal.late_deduction.toFixed(2)}</span></div><div class="row"><span>Advance/Lain</span><span>RM ${(sal.advance_payment+sal.other_deductions).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Potongan</b><b>RM ${deduct.toFixed(2)}</b></div></div></div><h2 style="text-align:center;margin-top:40px;background:#eee;padding:15px">GAJI BERSIH: RM ${(gross-deduct).toFixed(2)}</h2></body></html>`;
+                    const gross = (sal?.basic_salary || 0) + (sal?.allowance || 0) + ((sal?.ot_hours || 0)*(sal?.ot_rate || 0)) + (sal?.bonus || 0);
+                    const deduct = (sal?.kwsp || 0) + (sal?.socso || 0) + (sal?.eis || 0) + (sal?.other_deductions || 0) + (sal?.unpaid_leave_deduction || 0) + (sal?.late_deduction || 0) + (sal?.advance_payment || 0);
+                    const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;color:#333;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small style="color:#666">Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><p><b>Nama:</b> ${sal.empName}<br><b>IC:</b> ${sal.icNumber||'-'}</p><div style="display:flex;gap:20px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${(sal.basic_salary || 0).toFixed(2)}</span></div><div class="row"><span>Elaun/Bonus</span><span>RM ${((sal.allowance || 0)+(sal.bonus || 0)).toFixed(2)}</span></div><div class="row"><span>OT</span><span>RM ${((sal.ot_hours || 0)*(sal.ot_rate || 0)).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/SOCSO/EIS</span><span>RM ${((sal.kwsp || 0)+(sal.socso || 0)+(sal.eis || 0)).toFixed(2)}</span></div><div class="row"><span>Cuti Tanpa Gaji</span><span>RM ${(sal.unpaid_leave_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Denda Lewat</span><span>RM ${(sal.late_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Advance/Lain</span><span>RM ${((sal.advance_payment || 0)+(sal.other_deductions || 0)).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Potongan</b><b>RM ${deduct.toFixed(2)}</b></div></div></div><h2 style="text-align:center;margin-top:40px;background:#eee;padding:15px">GAJI BERSIH: RM ${(gross-deduct).toFixed(2)}</h2></body></html>`;
                     const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
                 };
 
@@ -674,7 +687,7 @@
                         <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
                             <div className="flex gap-2">
                                 <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50"><option>2024</option><option>2025</option><option>2026</option></select>
-                                <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50">{MONTHS.map((m,i)=> i>0 && <option key={i} value={i.toString()}>{m}</option>)}</select>
+                                <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
                             </div>
                             <div className="flex flex-wrap gap-2">
                                 <button onClick={()=>setShowReport(true)} className="px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition flex items-center gap-2"><Icons.ChartBar/> Analisa</button>
@@ -687,12 +700,12 @@
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredSalaries.length === 0 ? <div className="col-span-full text-center py-10 text-slate-400">Tiada rekod gaji untuk bulan ini. Tekan "Bina Pukal" untuk jana secara automatik.</div> : 
                             filteredSalaries.map(s => {
-                                const gross = s.basic_salary + s.allowance + (s.ot_hours*s.ot_rate) + s.bonus;
-                                const deduct = s.kwsp + s.socso + s.eis + s.other_deductions + s.unpaid_leave_deduction + s.late_deduction + s.advance_payment;
+                                const gross = (s?.basic_salary || 0) + (s?.allowance || 0) + ((s?.ot_hours || 0)*(s?.ot_rate || 0)) + (s?.bonus || 0);
+                                const deduct = (s?.kwsp || 0) + (s?.socso || 0) + (s?.eis || 0) + (s?.other_deductions || 0) + (s?.unpaid_leave_deduction || 0) + (s?.late_deduction || 0) + (s?.advance_payment || 0);
                                 const net = gross - deduct;
                                 return (
                                     <div key={s.id} className="bg-white p-5 rounded-2xl shadow-sm border relative">
-                                        <div className="flex justify-between items-start mb-4"><h3 className="font-bold text-slate-800 uppercase text-sm leading-tight pr-2">{s.empName}</h3><button onClick={()=>printSlip(s)} className="text-blue-500 hover:text-blue-700 p-1 bg-blue-50 rounded"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg></button></div>
+                                        <div className="flex justify-between items-start mb-4"><h3 className="font-bold text-slate-800 uppercase text-sm leading-tight pr-2">{s?.empName || 'Tidak Dinamakan'}</h3><button onClick={()=>printSlip(s)} className="text-blue-500 hover:text-blue-700 p-1 bg-blue-50 rounded"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg></button></div>
                                         <div className="bg-emerald-50 p-3 rounded-xl mb-4 text-center border border-emerald-100"><p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Gaji Bersih</p><p className="text-2xl font-black text-emerald-700">RM {net.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
                                         <div className="flex justify-between text-xs text-slate-500 mb-4 px-1"><span>Kasar: RM {gross.toFixed(2)}</span><span className="text-rose-500">Tolak: RM {deduct.toFixed(2)}</span></div>
                                         <div className="grid grid-cols-2 gap-2 mt-4"><button onClick={()=>openEdit(s)} className="py-2 bg-slate-100 rounded-lg text-xs font-bold hover:bg-slate-200 text-slate-700">Edit</button><button onClick={async()=>{if(confirm("Padam?"))await deleteDoc(doc(db,'artifacts',appId,'public','data','salaries',s.id));}} className="py-2 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100">Padam</button></div>
@@ -707,7 +720,7 @@
                                     <div className="sticky top-0 bg-white px-6 py-4 border-b flex justify-between items-center z-10"><h2 className="font-bold text-lg text-slate-800">{modalForm.mode==='add'?'Tambah':'Edit'} Gaji</h2><button type="button" onClick={closeM} className="p-2 bg-slate-100 rounded-full text-slate-600">✕</button></div>
                                     <form onSubmit={saveSalary} className="p-6 space-y-6">
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {modalForm.mode === 'add' && <div><label className="text-xs font-bold text-slate-500 block mb-1">Pekerja</label><select className="w-full p-2 border rounded outline-none font-bold bg-slate-50" value={modalForm.data.empCode} onChange={e=>handleFormChange(e, 'empCode')}>{employees.filter(e=>e.code!=='ADMIN').map(e=><option key={e.code} value={e.code}>{e.name}</option>)}</select></div>}
+                                            {modalForm.mode === 'add' && <div><label className="text-xs font-bold text-slate-500 block mb-1">Pekerja</label><select className="w-full p-2 border rounded outline-none font-bold bg-slate-50" value={modalForm.data.empCode} onChange={e=>handleFormChange(e, 'empCode')}>{employees.filter(e=>(e?.code || '')!=='ADMIN').map(e=><option key={e.code} value={e.code}>{e.name}</option>)}</select></div>}
                                             <div className="col-span-full"><h3 className="bg-slate-100 p-2 rounded text-sm font-bold mt-2">💰 Pendapatan</h3></div>
                                             <div>
                                                 <label className="text-xs font-bold text-slate-500 block">Gaji Asas (RM)</label>
@@ -738,10 +751,10 @@
                                 <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-fade shadow-2xl p-6">
                                     <div className="flex justify-between items-center mb-6"><h2 className="font-black text-2xl text-slate-800">📊 Laporan {year}</h2><button onClick={()=>setShowReport(false)} className="p-2 bg-slate-100 rounded-full">✕</button></div>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                                        <div className="bg-blue-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-blue-600 uppercase">J. Kasar Setahun</p><p className="text-lg font-black">RM {salaries.filter(s=>s.year===year).reduce((sum,s)=>sum+(s.basic_salary||0)+(s.allowance||0)+((s.ot_hours||0)*(s.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                                        <div className="bg-emerald-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-emerald-600 uppercase">J. Bersih Setahun</p><p className="text-lg font-black">RM {salaries.filter(s=>s.year===year).reduce((sum,s)=>sum+((s.basic_salary||0)+(s.allowance||0)+((s.ot_hours||0)*(s.ot_rate||0))-((s.kwsp||0)+(s.socso||0)+(s.eis||0)+(s.other_deductions||0)+(s.unpaid_leave_deduction||0)+(s.advance_payment||0)+(s.late_deduction||0))),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                                        <div className="bg-rose-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-rose-600 uppercase">J. Potongan KWSP</p><p className="text-lg font-black">RM {salaries.filter(s=>s.year===year).reduce((sum,s)=>sum+(s.kwsp||0),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                                        <div className="bg-amber-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-amber-600 uppercase">J. Bayaran OT</p><p className="text-lg font-black">RM {salaries.filter(s=>s.year===year).reduce((sum,s)=>sum+((s.ot_hours||0)*(s.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                                        <div className="bg-blue-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-blue-600 uppercase">J. Kasar Setahun</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+(s?.basic_salary||0)+(s?.allowance||0)+((s?.ot_hours||0)*(s?.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                                        <div className="bg-emerald-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-emerald-600 uppercase">J. Bersih Setahun</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+((s?.basic_salary||0)+(s?.allowance||0)+((s?.ot_hours||0)*(s?.ot_rate||0))-((s?.kwsp||0)+(s?.socso||0)+(s?.eis||0)+(s?.other_deductions||0)+(s?.unpaid_leave_deduction||0)+(s?.advance_payment||0)+(s?.late_deduction||0))),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                                        <div className="bg-rose-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-rose-600 uppercase">J. Potongan KWSP</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+(s?.kwsp||0),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
+                                        <div className="bg-amber-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-amber-600 uppercase">J. Bayaran OT</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+((s?.ot_hours||0)*(s?.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
                                     </div>
                                     <p className="text-sm text-center text-slate-500 italic">Gunakan sistem luaran untuk cetakan terperinci.</p>
                                 </div>
@@ -776,7 +789,7 @@
                                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                                     <p className="font-bold text-slate-800 text-sm mb-1">Waktu Balik Rasmi</p>
                                     <p className="text-xs text-slate-500 mb-3">Waktu minimum untuk Clock Out.</p>
-                                    <select value={settings.clockOutTime} onChange={e=>saveSettings(e.target.value, settings.bypassGps)} className="w-full p-2 font-bold bg-white border rounded-lg outline-none focus:border-blue-500"><option value="16:30">4:30 PM</option><option value="17:00">5:00 PM</option></select>
+                                    <select value={settings.clockOutTime || '17:00'} onChange={e=>saveSettings(e.target.value, settings.bypassGps)} className="w-full p-2 font-bold bg-white border rounded-lg outline-none focus:border-blue-500"><option value="16:30">4:30 PM</option><option value="17:00">5:00 PM</option></select>
                                 </div>
                                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
                                     <p className="font-bold text-slate-800 text-sm mb-1">Bypass GPS</p>
@@ -794,13 +807,13 @@
                                     <tbody className="divide-y divide-slate-100">
                                         {employees.map(e => (
                                             <tr key={e.code} className="hover:bg-slate-50">
-                                                <td className="p-4 font-mono font-bold text-slate-600">{e.code}</td>
-                                                <td className="p-4 font-bold">{e.name}</td>
-                                                <td className="p-4 text-xs">{e.position} ({e.dept})</td>
-                                                <td className="p-4 text-emerald-600 font-bold">RM {e.basic}</td>
+                                                <td className="p-4 font-mono font-bold text-slate-600">{e?.code || ''}</td>
+                                                <td className="p-4 font-bold">{e?.name || ''}</td>
+                                                <td className="p-4 text-xs">{e?.position || ''} ({e?.dept || ''})</td>
+                                                <td className="p-4 text-emerald-600 font-bold">RM {e?.basic || 0}</td>
                                                 <td className="p-4 flex gap-2">
                                                     <button onClick={()=>setEmpForm(e)} className="px-3 py-1 bg-slate-200 hover:bg-slate-300 rounded text-xs font-bold text-slate-700">Edit</button>
-                                                    {e.code !== 'ADMIN' && <button onClick={async()=>{if(confirm("Padam pekerja ini?"))await deleteDoc(doc(db,'artifacts',appId,'public','data','employees',e.code));}} className="px-3 py-1 bg-rose-50 hover:bg-rose-100 rounded text-xs font-bold text-rose-600">Padam</button>}
+                                                    {(e?.code || '') !== 'ADMIN' && <button onClick={async()=>{if(confirm("Padam pekerja ini?"))await deleteDoc(doc(db,'artifacts',appId,'public','data','employees',e.code));}} className="px-3 py-1 bg-rose-50 hover:bg-rose-100 rounded text-xs font-bold text-rose-600">Padam</button>}
                                                 </td>
                                             </tr>
                                         ))}
@@ -814,7 +827,7 @@
                                 <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-fade">
                                     <h2 className="font-black text-xl mb-4 border-b pb-2 text-slate-800">Profil Pekerja</h2>
                                     <form onSubmit={saveEmp} className="space-y-4">
-                                        <div><label className="text-xs font-bold text-slate-600">Kod Login (Unik)</label><input type="text" disabled={empForm.code !== '' && employees.some(e=>e.code===empForm.code)} value={empForm.code} onChange={e=>setEmpForm({...empForm,code:e.target.value})} className="w-full p-2 border rounded uppercase bg-slate-50 font-mono focus:border-blue-500 outline-none" required/></div>
+                                        <div><label className="text-xs font-bold text-slate-600">Kod Login (Unik)</label><input type="text" disabled={empForm.code !== '' && employees.some(e=>(e?.code || '')===empForm.code)} value={empForm.code} onChange={e=>setEmpForm({...empForm,code:e.target.value})} className="w-full p-2 border rounded uppercase bg-slate-50 font-mono focus:border-blue-500 outline-none" required/></div>
                                         <div><label className="text-xs font-bold text-slate-600">Nama Penuh</label><input type="text" value={empForm.name} onChange={e=>setEmpForm({...empForm,name:e.target.value})} className="w-full p-2 border rounded uppercase focus:border-blue-500 outline-none" required/></div>
                                         <div><label className="text-xs font-bold text-slate-600">No IC</label><input type="text" value={empForm.ic} onChange={e=>setEmpForm({...empForm,ic:e.target.value})} className="w-full p-2 border rounded focus:border-blue-500 outline-none"/></div>
                                         <div className="grid grid-cols-2 gap-2">
@@ -831,8 +844,11 @@
                 );
             }
 
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(<MainApp />);
+            const rootElement = document.getElementById('root');
+            if (rootElement) {
+                const root = ReactDOM.createRoot(rootElement);
+                root.render(<MainApp />);
+            }
         }
     </script>
 </body>
