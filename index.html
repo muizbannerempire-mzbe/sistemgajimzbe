@@ -16,8 +16,8 @@
         .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
         .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3b82f6; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Gaya Logo Tanpa Box */
-        .logo-clean { background: transparent !important; border: none !important; box-shadow: none !important; }
+        /* Logo Flat - Tiada Box/Border */
+        .logo-flat { background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; outline: none !important; }
     </style>
 </head>
 <body class="antialiased text-slate-800">
@@ -26,15 +26,15 @@
     <!-- Modul Firebase -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
-        window.fbModules = { initializeApp, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken };
+        window.fb = { initializeApp, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, query, where };
     </script>
 
     <!-- Aplikasi React -->
     <script type="text/babel">
-        const { useState, useEffect, useCallback, Fragment } = React;
+        const { useState, useEffect, useCallback, Fragment, useMemo } = React;
 
         // --- KONFIGURASI GLOBAL ---
         const APP_ID = 'sistemgajimzbe'; 
@@ -50,34 +50,30 @@
             { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '070909030855' },
             { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '010815110403' },
             { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', basic: 1700, ic: '930905115074' },
-            { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' },
-            { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
+            { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' }
         ];
 
-        // --- IKON ---
-        const IconLogOut = ({size=18}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
-        const IconEdit = ({size=16}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
-        const IconPrinter = ({size=18}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>;
+        // --- KOMPONEN LOGO ---
+        const BrandLogo = ({ size = "large" }) => (
+            <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-6' : 'mb-0'}`}>
+                <img 
+                    src="./logo.png" 
+                    alt="Logo MBE" 
+                    style={{ height: size === 'large' ? '100px' : '32px', width: 'auto', objectFit: 'contain' }} 
+                    className="logo-flat" 
+                    onError={e => { e.target.onerror=null; e.target.src='https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=false&bold=true'; }} 
+                />
+                {size === 'large' && (
+                    <div className="text-center mt-2">
+                        <h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase leading-none">Muiz Banner</h1>
+                        <p className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.4em] mt-1">Sistem Gaji</p>
+                    </div>
+                )}
+            </div>
+        );
 
-        // ==========================================
-        // UI COMPONENTS
-        // ==========================================
-        function BrandLogo({ size = "large" }) {
-            return (
-                <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-6' : 'mb-0 shrink-0'}`}>
-                    <img 
-                        src="./logo.png" 
-                        alt="MBE Logo" 
-                        style={{ height: size === 'large' ? '100px' : '34px', width: 'auto', objectFit: 'contain' }} 
-                        className="logo-clean" 
-                        onError={e => { e.target.onerror=null; e.target.src='https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=false&bold=true'; }} 
-                    />
-                    {size === 'large' && <div className="text-center mt-2"><h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Muiz Banner</h1><p className="text-xs font-bold text-blue-600 uppercase tracking-[0.2em]">Sistem Gaji</p></div>}
-                </div>
-            );
-        }
-
-        function LoginScreen({ employees, onLogin, isReady, showToast }) {
+        // --- KOMPONEN LAYAR LOGIN ---
+        const LoginScreen = ({ employees, onLogin, isReady, showToast }) => {
             const [username, setUsername] = useState('');
             const [password, setPassword] = useState('');
 
@@ -97,116 +93,145 @@
 
             return (
                 <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl p-10 w-full max-w-md shadow-xl border border-slate-100 animate-fade">
+                    <div className="bg-white rounded-3xl p-10 w-full max-w-md shadow-2xl border border-slate-200 animate-fade">
                         <BrandLogo size="large" />
-                        <form onSubmit={handleSubmit} className="space-y-5 mt-6">
+                        <form onSubmit={handleSubmit} className="space-y-5 mt-8">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Kod Pekerja</label>
-                                <input type="text" value={username} onChange={e=>setUsername(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none uppercase font-bold text-slate-700 transition" placeholder="Cth: MZBE012024" required/>
+                                <input type="text" value={username} onChange={e=>setUsername(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none uppercase font-bold text-slate-700 transition" placeholder="MZBEXXXX" required/>
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Kata Laluan</label>
-                                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold text-slate-700 transition" placeholder="Masukkan kata laluan" required/>
+                                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold text-slate-700 transition" placeholder="••••••••" required/>
                             </div>
-                            <button type="submit" disabled={!isReady} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center gap-2">
-                                {!isReady && <div className="loader border-white border-t-blue-600 w-5 h-5"></div>}
-                                {isReady ? 'Log Masuk Sistem' : 'Menghubungkan...'}
+                            <button type="submit" disabled={!isReady} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition disabled:opacity-50">
+                                {isReady ? 'Log Masuk Sistem' : 'Menyambung Database...'}
                             </button>
                         </form>
                     </div>
                 </div>
             );
-        }
+        };
 
-        // ==========================================
-        // SUB-MODULES
-        // ==========================================
-        function ModuleSalary({ user, salaries, employees, showToast, db, appId }) {
-            const { doc, setDoc, deleteDoc } = window.fbModules;
-            const isAdmin = user?.code === 'ADMIN';
+        // --- KOMPONEN TAMPILAN GAJI ---
+        function SalaryView({ salaries, employees, isAdmin, importData, print, deleteDoc, db, appId, doc }) {
             const [year, setYear] = useState(new Date().getFullYear().toString());
             const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
-
-            const filteredSalaries = salaries.filter(s => (s?.year || '') === year && (s?.month || '') === month && (isAdmin || s?.empCode === user.code));
-
-            const importStandardData = async () => {
-                if(!window.confirm(`Guna data standard untuk ${MONTHS[parseInt(month)]} ${year}?`)) return;
-                showToast(`Menjana data...`, 'info');
-                try {
-                    for (const d of DEFAULT_EMPLOYEES) {
-                        if(d.code === 'ADMIN') continue;
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', d.code), d, {merge:true});
-                        const recordId = `sal_${d.code}_${year}_${month}`;
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), { 
-                            empCode: d.code, empName: d.name, icNumber: d.ic, dept: d.dept, position: d.position, 
-                            year, month, basic_salary: d.basic, kwsp: (d.basic * 0.11), advance_payment: 0, 
-                            unpaid_leave_days: 0, unpaid_leave_deduction: 0, updatedAt: new Date().toISOString() 
-                        }, {merge:true});
-                    }
-                    showToast(`Selesai dijana!`, 'success');
-                } catch(err) { showToast('Ralat Firebase.', 'error'); }
-            };
-
-            const printSlip = (sal) => {
-                const gross = (sal?.basic_salary || 0);
-                const deduct = (sal?.kwsp || 0) + (sal?.advance_payment || 0);
-                const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;line-height:1.6} .header{text-align:center;margin-bottom:30px} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><div class="header"><h2>MUIZ BANNER EMPIRE</h2><p>Penyata Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</p></div><div style="background:#f4f4f4;padding:15px;border-radius:5px;margin-bottom:20px"><p><b>Nama:</b> ${sal.empName}<br><b>Kod:</b> ${sal.empCode}</p></div><div class="row"><span>Gaji Asas</span><span>RM ${sal.basic_salary.toFixed(2)}</span></div><div class="row"><span>KWSP</span><span>-RM ${sal.kwsp.toFixed(2)}</span></div><br><h3 style="text-align:right">GAJI BERSIH: RM ${(gross-deduct).toFixed(2)}</h3></body></html>`;
-                const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
-            };
+            const filtered = salaries.filter(s => s.year === year && s.month === month);
 
             return (
                 <div className="space-y-6">
                     <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-col md:flex-row items-center justify-between gap-4">
                         <div className="flex gap-2">
-                            <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">{[2024,2025,2026,2027,2028,2029,2030].map(y=><option key={y}>{y}</option>)}</select>
-                            <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
+                            <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">
+                                {[2024,2025,2026,2027,2028,2029,2030].map(y=><option key={y} value={y.toString()}>{y}</option>)}
+                            </select>
+                            <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">
+                                {MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}
+                            </select>
                         </div>
-                        {isAdmin && <button onClick={importStandardData} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">📥 Jana Data Standard</button>}
+                        {isAdmin && (
+                            <button onClick={()=>importData(month, year)} className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">📥 Jana Data Standard</button>
+                        )}
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredSalaries.length === 0 ? <div className="col-span-full text-center py-12 text-slate-400 border border-dashed rounded-3xl">Pilih bulan dan tekan "Jana Data Standard" untuk memulakan.</div> : 
-                        filteredSalaries.map(s => (
-                            <div key={s.id} className="bg-white p-5 rounded-3xl shadow-sm border relative animate-fade">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="overflow-hidden"><h3 className="font-bold text-slate-800 uppercase text-sm truncate">{s.empName}</h3><p className="text-xs text-slate-400 mt-1 font-mono">{s.empCode}</p></div>
-                                    <button onClick={()=>printSlip(s)} className="text-blue-600 bg-blue-50 p-2 rounded-xl"><IconPrinter/></button>
-                                </div>
-                                <div className="bg-emerald-50 p-4 rounded-2xl mb-4 text-center border border-emerald-100">
-                                    <p className="text-[10px] text-emerald-600 font-bold uppercase">Gaji Bersih</p>
-                                    <p className="text-2xl font-black text-emerald-700">RM {((s?.basic_salary||0) - ((s?.kwsp||0)+(s?.advance_payment||0))).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
-                                </div>
-                                {isAdmin && <div className="grid grid-cols-2 gap-2 mt-4"><button className="py-2 bg-slate-100 rounded-xl text-xs font-bold hover:bg-slate-200">Edit</button><button onClick={async()=>{ if(window.confirm("Padam?")) await deleteDoc(doc(db,'artifacts',appId,'public','data','salaries',s.id))}} className="py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold">Padam</button></div>}
+                        {filtered.length === 0 ? (
+                            <div className="col-span-full text-center py-20 text-slate-400 border-2 border-dashed rounded-3xl">
+                                Tiada rekod untuk bulan ini. {isAdmin && 'Sila tekan butang "Jana Data Standard".'}
                             </div>
-                        ))}
+                        ) : filtered.map(s => {
+                            const net = (s?.basic_salary || 0) - (s?.kwsp || 0);
+                            return (
+                                <div key={s.id} className="bg-white p-5 rounded-3xl shadow-sm border relative hover:shadow-md transition">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="overflow-hidden">
+                                            <h3 className="font-bold text-slate-800 uppercase text-sm truncate">{s.empName}</h3>
+                                            <p className="text-xs text-slate-400 mt-1 font-mono">{s.empCode}</p>
+                                        </div>
+                                        <button onClick={()=>print(s)} className="text-blue-500 p-2 hover:bg-blue-50 rounded-xl transition">
+                                            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                                        </button>
+                                    </div>
+                                    <div className="bg-emerald-50 p-4 rounded-2xl mb-4 text-center border border-emerald-100">
+                                        <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Gaji Bersih</p>
+                                        <p className="text-2xl font-black text-emerald-700">RM {net.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
+                                    </div>
+                                    {isAdmin && (
+                                        <button onClick={async()=>{if(window.confirm("Hapus rekod ini?")) await deleteDoc(doc(db,'artifacts',appId,'public','data','salaries',s.id))}} className="w-full py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition">Hapus Rekod</button>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             );
         }
 
-        function ModuleAdmin({ employees, showToast, db, appId }) {
-            const { doc, setDoc, deleteDoc } = window.fbModules;
-            const [form, setForm] = useState(null);
+        // --- KOMPONEN TAMPILAN ADMIN ---
+        function AdminView({ employees, deleteDoc, doc, db, appId, setDoc, showToast }) {
+            const [editForm, setEditForm] = useState(null);
             const save = async (e) => {
                 e.preventDefault();
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', form.code.toUpperCase()), { ...form, code: form.code.toUpperCase(), name: form.name.toUpperCase(), basic: parseFloat(form.basic)||0 }, {merge:true});
-                    showToast("Tersimpan!", "success"); setForm(null);
-                } catch(err) { showToast("Gagal simpan.", "error"); }
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', editForm.code.toUpperCase()), { ...editForm, code: editForm.code.toUpperCase(), name: editForm.name.toUpperCase(), basic: parseFloat(editForm.basic)||0 }, {merge:true});
+                    showToast("Maklumat Tersimpan!", "success"); setEditForm(null);
+                } catch(err) { showToast("Gagal menyimpan.", "error"); }
             };
+
             return (
                 <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                    <div className="p-6 bg-slate-50 border-b flex justify-between items-center"><h3 className="font-black text-xl text-slate-800">Direktori Pekerja</h3><button onClick={()=>setForm({code:'',name:'',dept:'',position:'',basic:0,ic:''})} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md">➕ Tambah Baru</button></div>
-                    <div className="overflow-x-auto"><table className="w-full text-left text-sm whitespace-nowrap"><thead className="bg-white text-xs text-slate-400 font-bold uppercase border-b-2"><tr><th className="p-4">Kod</th><th className="p-4">Nama</th><th className="p-4 text-right">Tindakan</th></tr></thead><tbody className="divide-y divide-slate-100">{employees.map(e=>(<tr key={e.code} className="hover:bg-slate-50 transition"><td className="p-4 font-mono font-bold text-slate-500">{e.code}</td><td className="p-4 font-bold text-slate-800 uppercase">{e.name}</td><td className="p-4 text-right flex gap-2 justify-end"><button onClick={()=>setForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold transition flex items-center gap-1"><IconEdit size={14}/> Edit Profil</button><button onClick={async()=> {if(window.confirm("Padam?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', e.code))}} className="p-1.5 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition"><IconTrash size={16}/></button></td></tr>))}</tbody></table></div>
-                    {form && <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-3xl w-full max-w-xl p-8 shadow-2xl animate-fade"><h2 className="font-black text-2xl mb-6 border-b pb-4">{form.code && employees.some(x=>x.code===form.code) ? 'Edit Profil' : 'Daftar Pekerja'}</h2><form onSubmit={save} className="space-y-4"><input type="text" placeholder="KOD LOGIN" value={form.code} onChange={e=>setForm({...form,code:e.target.value})} className="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none uppercase font-mono" required/><input type="text" placeholder="NAMA PENUH" value={form.name} onChange={e=>setForm({...form,name:e.target.value.toUpperCase()})} className="w-full p-3 border-2 rounded-xl uppercase" required/><input type="number" placeholder="GAJI ASAS" value={form.basic} onChange={e=>setForm({...form,basic:e.target.value})} className="w-full p-4 border-2 border-emerald-200 bg-emerald-50/20 rounded-xl text-lg font-black text-emerald-800" required/><div className="flex gap-3 pt-6"><button type="button" onClick={()=>setForm(null)} className="flex-1 bg-slate-100 py-4 rounded-xl font-bold">Batal</button><button type="submit" className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">Simpan</button></div></form></div></div>}
+                    <div className="p-6 bg-slate-50 border-b flex justify-between items-center">
+                        <h3 className="font-black text-xl text-slate-800 tracking-tight">Direktori Pekerja</h3>
+                        <button onClick={()=>setEditForm({code:'',name:'',basic:0,ic:'',dept:'',position:''})} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-600/20">Tambah Pekerja</button>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm whitespace-nowrap">
+                            <thead className="bg-white text-xs text-slate-400 font-bold uppercase border-b-2">
+                                <tr><th className="p-4">Kod</th><th className="p-4">Nama</th><th className="p-4">Jawatan</th><th className="p-4 text-right">Tindakan</th></tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {employees.map(e=>(
+                                    <tr key={e.code} className="hover:bg-slate-50 transition">
+                                        <td className="p-4 font-mono font-bold text-slate-500">{e.code}</td>
+                                        <td className="p-4 font-bold text-slate-800 uppercase">{e.name}</td>
+                                        <td className="p-4 text-xs font-medium text-slate-600">{e.position}<br/><span className="text-blue-500">{e.dept}</span></td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button onClick={()=>setEditForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold transition">Edit</button>
+                                                <button onClick={async()=> {if(window.confirm("Hapus pekerja?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', e.code))}} className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition">
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h12m-9 0v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6M8 6V4a2 2 0 012-2h0a2 2 0 012 2v2"/></svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    {editForm && (
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl animate-fade">
+                                <h2 className="font-black text-2xl mb-6 border-b pb-4">Profil Pekerja</h2>
+                                <form onSubmit={save} className="space-y-4">
+                                    <input type="text" placeholder="KOD LOGIN" value={editForm.code} onChange={e=>setEditForm({...editForm,code:e.target.value})} className="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none uppercase font-mono" required/>
+                                    <input type="text" placeholder="NAMA PENUH" value={editForm.name} onChange={e=>setEditForm({...editForm,name:e.target.value})} className="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none uppercase" required/>
+                                    <input type="number" placeholder="GAJI POKOK (RM)" value={editForm.basic} onChange={e=>setEditForm({...editForm,basic:e.target.value})} className="w-full p-4 border-2 border-emerald-200 bg-emerald-50/20 rounded-xl text-lg font-black text-emerald-800" required/>
+                                    <div className="flex gap-3 pt-6">
+                                        <button type="button" onClick={()=>setEditForm(null)} className="flex-1 bg-slate-100 py-4 rounded-xl font-bold">Batal</button>
+                                        <button type="submit" className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-600/30">Simpan Profil</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
 
         // ==========================================
-        // MAIN APP
+        // MAIN APP COMPONENT
         // ==========================================
         function MainApp() {
-            const { initializeApp, getFirestore, collection, doc, onSnapshot, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, setDoc } = window.fbModules;
             const [fbUser, setFbUser] = useState(null);
             const [currentUser, setCurrentUser] = useState(null);
             const [activeTab, setActiveTab] = useState('salary');
@@ -215,6 +240,9 @@
             const [toast, setToast] = useState(null);
             const [isReady, setIsReady] = useState(false);
 
+            // Inisialisasi Firebase Services
+            const { initializeApp, getFirestore, collection, doc, onSnapshot, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, setDoc, deleteDoc } = window.fb;
+            
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
                 apiKey: "AIzaSyAd_sBPBJ4Zru0gbX8dCD9FxJ4Qc0Dt7-Q",
                 authDomain: "sistemgajimuiz.firebaseapp.com",
@@ -224,68 +252,103 @@
                 appId: "1:971845171525:web:a4ba8a5848d2262dac262c"
             };
 
-            const app = initializeApp(firebaseConfig);
-            const db = getFirestore(app);
-            const auth = getAuth(app);
             const appId = typeof __app_id !== 'undefined' ? __app_id : APP_ID;
+            
+            const app = useMemo(() => initializeApp(firebaseConfig), []);
+            const db = useMemo(() => getFirestore(app), [app]);
+            const auth = useMemo(() => getAuth(app), [app]);
 
             const showToast = useCallback((msg, type = 'info') => {
                 setToast({ msg, type });
-                setTimeout(() => setToast(null), 3000);
+                setTimeout(() => setToast(null), 3500);
             }, []);
 
+            // 1. Auth Logic
             useEffect(() => {
-                const initAuth = async () => {
+                const init = async () => {
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else { await signInAnonymously(auth); }
-                    } catch (e) { console.warn("Auth Fail:", e.message); }
+                    } catch (e) { console.warn("Autentikasi Gagal:", e.message); }
                 };
-                initAuth();
-                const unsubscribe = onAuthStateChanged(auth, setFbUser);
+                init();
+                const unsubscribe = onAuthStateChanged(auth, user => setFbUser(user));
                 return () => unsubscribe();
-            }, []);
+            }, [auth]);
 
+            // 2. Data Fetching
             useEffect(() => {
                 if (!fbUser) return;
                 const bPath = ['artifacts', appId, 'public', 'data'];
+                
                 const unsubEmp = onSnapshot(collection(db, ...bPath, 'employees'), snap => {
                     const emps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                     setEmployees(emps);
                     setIsReady(true);
-                }, err => console.warn(err.message));
+                }, err => console.warn("Akses Ditolak (Emp):", err.message));
 
                 const unsubSal = onSnapshot(collection(db, ...bPath, 'salaries'), snap => {
                     setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                }, err => console.warn(err.message));
+                }, err => console.warn("Akses Ditolak (Sal):", err.message));
 
                 return () => { unsubEmp(); unsubSal(); };
-            }, [fbUser, appId]);
+            }, [fbUser, appId, db]);
+
+            // Jana Data
+            const importStandardData = async (targetMonth, targetYear) => {
+                if(!window.confirm(`Jana data standard untuk ${MONTHS[parseInt(targetMonth)]} ${targetYear}?`)) return;
+                showToast(`Menjana data...`, 'info');
+                try {
+                    for (const d of DEFAULT_EMPLOYEES) {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', d.code), d, {merge:true});
+                        const recordId = `sal_${d.code}_${targetYear}_${targetMonth}`;
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), { 
+                            empCode: d.code, empName: d.name, icNumber: d.ic, dept: d.dept, position: d.position, 
+                            year: targetYear, month: targetMonth, basic_salary: d.basic, kwsp: (d.basic * 0.11), 
+                            advance_payment: 0, updatedAt: new Date().toISOString() 
+                        }, {merge:true});
+                    }
+                    showToast(`Selesai!`, 'success');
+                } catch(err) { showToast('Gagal. Periksa Firebase Rules.', 'error'); }
+            };
+
+            const printSlip = (sal) => {
+                const net = (sal?.basic_salary || 0) - (sal?.kwsp || 0);
+                const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0} .header{text-align:center;margin-bottom:30px}</style></head><body><div class="header"><h2>MUIZ BANNER EMPIRE</h2><p>Penyata Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</p></div><div style="background:#f4f4f4;padding:15px;border-radius:8px;margin-bottom:20px"><p><b>NAMA:</b> ${sal.empName}<br><b>KOD:</b> ${sal.empCode}</p></div><div class="row"><span>Gaji Asas</span><span>RM ${sal.basic_salary.toFixed(2)}</span></div><div class="row"><span>KWSP (11%)</span><span>-RM ${sal.kwsp.toFixed(2)}</span></div><br><h3 style="text-align:right">BERSIH: RM ${net.toFixed(2)}</h3></body></html>`;
+                const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
+            };
 
             if (!currentUser) return <LoginScreen employees={employees} onLogin={setCurrentUser} isReady={isReady} showToast={showToast} />;
 
             return (
-                <div className="min-h-screen flex flex-col bg-slate-100">
+                <div className="min-h-screen flex flex-col bg-slate-50">
                     <header className="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-30">
-                        <div className="flex items-center gap-4"><BrandLogo size="small" /><div><h1 className="font-bold tracking-tight">Sistem Gaji MBE</h1><p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{currentUser.name}</p></div></div>
-                        <button onClick={() => setCurrentUser(null)} className="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition"><IconLogOut size={16}/> Keluar</button>
+                        <div className="flex items-center gap-4">
+                            <BrandLogo size="small" />
+                            <div><h1 className="font-bold tracking-tight">Sistem Gaji MBE</h1><p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{currentUser.name}</p></div>
+                        </div>
+                        <button onClick={() => setCurrentUser(null)} className="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition flex items-center gap-2">Log Keluar</button>
                     </header>
-                    <div className="bg-white border-b shadow-sm sticky top-[64px] z-20 overflow-x-auto hide-scroll">
+
+                    <div className="bg-white border-b shadow-sm sticky top-[68px] z-20 overflow-x-auto hide-scroll">
                         <div className="max-w-7xl mx-auto px-4 flex gap-6 whitespace-nowrap">
                             <button onClick={()=>setActiveTab('salary')} className={`px-4 py-4 font-bold text-sm border-b-2 transition-colors ${activeTab==='salary'?'border-blue-600 text-blue-700':'border-transparent text-slate-500'}`}>💰 Urusan Gaji</button>
                             {currentUser.code === 'ADMIN' && <button onClick={()=>setActiveTab('admin')} className={`px-4 py-4 font-bold text-sm border-b-2 transition-colors ${activeTab==='admin'?'border-blue-600 text-blue-700':'border-transparent text-slate-500'}`}>👨‍💼 Direktori Pekerja</button>}
                         </div>
                     </div>
-                    <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
-                        <div className="animate-fade">
-                            {activeTab === 'salary' && <ModuleSalary user={currentUser} salaries={salaries} employees={employees} showToast={showToast} db={db} appId={appId} />}
-                            {activeTab === 'admin' && currentUser?.code === 'ADMIN' && <ModuleAdmin employees={employees} showToast={showToast} db={db} appId={appId} />}
-                        </div>
+
+                    <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full animate-fade">
+                        {activeTab === 'salary' ? (
+                            <SalaryView db={db} appId={appId} salaries={salaries} employees={employees} isAdmin={currentUser.code === 'ADMIN'} importData={importStandardData} print={printSlip} deleteDoc={deleteDoc} doc={doc} />
+                        ) : (
+                            <AdminView db={db} appId={appId} employees={employees} deleteDoc={deleteDoc} doc={doc} setDoc={setDoc} showToast={showToast} />
+                        )}
                     </main>
+
                     {toast && (
                         <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl font-bold text-white z-50 flex items-center gap-3 animate-fade ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'}`}>
-                            {toast.type === 'success' ? <IconCheck/> : <IconAlert/>} {toast.msg}
+                            {toast.msg}
                         </div>
                     )}
                 </div>
