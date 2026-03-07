@@ -52,15 +52,12 @@
             { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
         ];
 
-        // --- IKON TERBINA DALAM ---
-        const IconLogOut = ({size=18, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
-        const IconCheck = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
-        const IconAlert = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>;
-        const IconTrash = ({size=16, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
-        const IconEdit = ({size=16, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
-        const IconChartBar = ({size=20, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>;
-        const IconPrinter = ({size=18, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>;
-        const IconUsers = ({size=20, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+        // --- IKON ---
+        const IconLogOut = ({size=18}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
+        const IconCheck = ({size=24}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
+        const IconAlert = ({size=24}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>;
+        const IconEdit = ({size=16}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+        const IconPrinter = ({size=18}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>;
 
         // ==========================================
         // UI COMPONENTS
@@ -71,20 +68,12 @@
                     <img 
                         src="./logo.jpg" 
                         alt="MBE Logo" 
-                        style={{ height: size === 'large' ? '85px' : '36px', width: 'auto', objectFit: 'contain' }} 
-                        className={size === 'large' ? 'mb-3 rounded-xl' : 'rounded-md'} 
+                        style={{ height: size === 'large' ? '90px' : '32px', width: 'auto', objectFit: 'contain' }} 
+                        className={size === 'large' ? 'mb-3' : ''} 
                         onError={e => { e.target.onerror=null; e.target.src='https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=true&bold=true'; }} 
                     />
                     {size === 'large' && <div className="text-center"><h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Muiz Banner</h1><p className="text-xs font-bold text-blue-600 uppercase tracking-[0.2em] mt-1">Sistem Gaji</p></div>}
                 </div>
-            );
-        }
-
-        function TabBtn({ label, icon, active, onClick }) {
-            return (
-                <button onClick={onClick} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${active ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-                    <span>{icon}</span> {label}
-                </button>
             );
         }
 
@@ -95,11 +84,9 @@
             const handleSubmit = (e) => {
                 e.preventDefault();
                 const cleanUser = username.trim().toUpperCase();
-                
                 if(cleanUser === 'ADMIN' && password === 'admin123') {
                     onLogin({ code: 'ADMIN', name: 'Administrator' }); return;
                 }
-                
                 const emp = employees.find(e => (e?.code || '') === cleanUser);
                 if(emp && password === emp.code) {
                     onLogin(emp);
@@ -132,103 +119,19 @@
         }
 
         // ==========================================
-        // MODUL 1: GAJI & SLIP (SISTEM UTAMA)
+        // MODULES (Salary & Admin)
         // ==========================================
-        function ModuleSalary({ user, salaries, employees, showToast, db }) {
+        function ModuleSalary({ user, salaries, employees, showToast, db, appId }) {
+            const { doc, setDoc, deleteDoc } = window.fbModules;
             const isAdmin = user?.code === 'ADMIN';
             const [year, setYear] = useState(new Date().getFullYear().toString());
             const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
-            const [modalForm, setModalForm] = useState(null); 
-            const [showReport, setShowReport] = useState(false);
-            
+
             const filteredSalaries = salaries.filter(s => (s?.year || '') === year && (s?.month || '') === month && (isAdmin || s?.empCode === user.code));
-
-            const getDefaultsFromEmp = (empCode) => {
-                const emp = employees.find(e => (e?.code || '') === empCode);
-                if(!emp) return {};
-                
-                const basic = emp.basic || 0;
-                const kwsp = basic * 0.11; 
-
-                return { 
-                    basic_salary: basic, 
-                    unpaid_leave_days: 0, 
-                    unpaid_leave_deduction: 0, 
-                    late_deduction: 0, 
-                    kwsp: parseFloat(kwsp.toFixed(2)), 
-                    allowance: 0, 
-                    ot_hours: 0, 
-                    ot_rate: 10, 
-                    bonus: 0, 
-                    advance_payment: 0, 
-                    socso: 0, 
-                    eis: 0, 
-                    other_deductions: 0 
-                };
-            };
-
-            const openAdd = () => {
-                const firstEmpCode = employees.find(e=>(e?.code || '') !== 'ADMIN')?.code;
-                setModalForm({ mode: 'add', data: { empCode: firstEmpCode, ...getDefaultsFromEmp(firstEmpCode) } });
-            };
-            const openEdit = (sal) => setModalForm({ mode: 'edit', data: { ...sal } });
-            const closeM = () => setModalForm(null);
-
-            const handleFormChange = (e, field) => {
-                let val = e.target.value;
-                const newData = { ...modalForm.data, [field]: val };
-                
-                if (field === 'empCode' && modalForm.mode === 'add') {
-                    Object.assign(newData, getDefaultsFromEmp(val));
-                }
-                if (field === 'basic_salary' || field === 'unpaid_leave_days') {
-                    const b = parseFloat(newData.basic_salary) || 0;
-                    const d = parseInt(newData.unpaid_leave_days) || 0;
-                    newData.unpaid_leave_deduction = parseFloat(((b / 26) * d).toFixed(2));
-                }
-                setModalForm({ ...modalForm, data: newData });
-            };
-
-            const saveSalary = async (e) => {
-                e.preventDefault(); const d = modalForm.data;
-                const emp = employees.find(x => (x?.code || '') === d.empCode);
-                const recordId = modalForm.mode === 'edit' ? d.id : `sal_${d.empCode}_${year}_${month}`;
-                
-                const finalData = {
-                    empCode: d.empCode, empName: emp?.name || '', icNumber: emp?.ic || '', dept: emp?.dept || '', position: emp?.position || '', year, month,
-                    basic_salary: parseFloat(d.basic_salary)||0, allowance: parseFloat(d.allowance)||0, ot_hours: parseFloat(d.ot_hours)||0, ot_rate: parseFloat(d.ot_rate)||0, bonus: parseFloat(d.bonus)||0, advance_payment: parseFloat(d.advance_payment)||0,
-                    kwsp: parseFloat(d.kwsp)||0, socso: parseFloat(d.socso)||0, eis: parseFloat(d.eis)||0, other_deductions: parseFloat(d.other_deductions)||0, late_deduction: parseFloat(d.late_deduction)||0,
-                    unpaid_leave_days: parseInt(d.unpaid_leave_days)||0, unpaid_leave_deduction: parseFloat(d.unpaid_leave_deduction)||0,
-                    updatedAt: new Date().toISOString()
-                };
-
-                try {
-                    await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', recordId), finalData, {merge:true});
-                    showToast('Rekod Gaji Disimpan!', 'success'); 
-                    closeM();
-                } catch(err) {
-                    showToast('Gagal menyimpan rekod. Sila periksa Rules Firebase.', 'error');
-                }
-            };
-
-            const importPukal = async () => {
-                if(!window.confirm(`Bina templat gaji kosong untuk bulan ${MONTHS[parseInt(month)]} ${year} bagi semua pekerja?`)) return;
-                showToast('Membina rekod...', 'info');
-                try {
-                    for (const emp of employees.filter(e => (e?.code || '') !== 'ADMIN')) {
-                        const id = `sal_${emp.code}_${year}_${month}`;
-                        const def = getDefaultsFromEmp(emp.code);
-                        await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id), { empCode: emp.code, empName: emp.name, icNumber: emp.ic||'', dept: emp.dept||'', position: emp.position||'', year, month, ...def, updatedAt: new Date().toISOString() }, {merge:true});
-                    }
-                    showToast('Selesai dibina!', 'success');
-                } catch(err) {
-                    showToast('Ralat membina rekod. Periksa Rules Firebase.', 'error');
-                }
-            };
 
             const importStandardData = async () => {
                 if(!window.confirm(`Anda pasti mahu jana senarai pekerja & data gaji standard untuk bulan ${MONTHS[parseInt(month)]} ${year}?`)) return;
-                showToast(`Menjana data gaji ${MONTHS[parseInt(month)]}...`, 'info');
+                showToast(`Menjana data...`, 'info');
                 
                 const standardData = [
                     { empCode: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '040421110053', advance_payment: 700, kwsp: 198, basic_salary: 1800 },
@@ -244,301 +147,72 @@
                 ];
                 
                 try {
-                    for (const data of standardData) {
-                        // 1. DAFTARKAN TERUS KE DALAM DIREKTORI PEKERJA
-                        const empProfile = {
-                            code: data.empCode,
-                            name: data.name,
-                            ic: data.ic,
-                            dept: data.dept,
-                            position: data.position,
-                            basic: data.basic_salary
-                        };
-                        await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', data.empCode), empProfile, {merge:true});
-
-                        // 2. MASUKKAN REKOD GAJI
-                        const recordId = `sal_${data.empCode}_${year}_${month}`;
-                        const finalData = {
-                            empCode: data.empCode,
-                            empName: data.name,
-                            icNumber: data.ic,
-                            dept: data.dept,
-                            position: data.position,
-                            year: year,
-                            month: month,
-                            basic_salary: data.basic_salary || 0,
-                            allowance: 0, ot_hours: 0, ot_rate: 10, bonus: 0,
-                            advance_payment: data.advance_payment || 0,
-                            kwsp: data.kwsp || 0, socso: 0, eis: 0, other_deductions: 0, late_deduction: 0,
-                            unpaid_leave_days: data.unpaid_leave_days || 0,
-                            unpaid_leave_deduction: data.unpaid_leave_deduction || 0,
-                            updatedAt: new Date().toISOString()
-                        };
-                        await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', recordId), finalData, {merge:true});
+                    for (const d of standardData) {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', d.empCode), { code: d.empCode, name: d.name, ic: d.ic, dept: d.dept, position: d.position, basic: d.basic_salary }, {merge:true});
+                        const recordId = `sal_${d.empCode}_${year}_${month}`;
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), { empCode: d.empCode, empName: d.name, icNumber: d.ic, dept: d.dept, position: d.position, year, month, basic_salary: d.basic_salary, kwsp: d.kwsp, advance_payment: d.advance_payment, unpaid_leave_days: d.unpaid_leave_days||0, unpaid_leave_deduction: d.unpaid_leave_deduction||0, allowance:0, ot_hours:0, ot_rate:10, bonus:0, socso:0, eis:0, other_deductions:0, late_deduction:0, updatedAt: new Date().toISOString() }, {merge:true});
                     }
-                    showToast(`Data gaji ${MONTHS[parseInt(month)]} ${year} berjaya dijana!`, 'success');
-                } catch(err) {
-                    console.warn(err);
-                    showToast('Gagal memuat naik. Periksa Firebase Rules.', 'error');
-                }
+                    showToast(`Selesai menjana data.`, 'success');
+                } catch(err) { showToast('Ralat. Periksa Firebase Rules.', 'error'); }
             };
 
-            const deleteSalary = async (id) => {
-                if(window.confirm("Padam rekod ini?")) {
-                    try {
-                        await window.fbModules.deleteDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id));
-                    } catch(e) {
-                        showToast("Gagal memadam. Periksa Firebase Rules.", "error");
-                    }
-                }
-            };
-
-            const printSlip = (sal, empName, icNumber, dept, position) => {
+            const printSlip = (sal) => {
                 const gross = (sal?.basic_salary || 0) + (sal?.allowance || 0) + ((sal?.ot_hours || 0)*(sal?.ot_rate || 0)) + (sal?.bonus || 0);
                 const deduct = (sal?.kwsp || 0) + (sal?.socso || 0) + (sal?.eis || 0) + (sal?.other_deductions || 0) + (sal?.unpaid_leave_deduction || 0) + (sal?.late_deduction || 0) + (sal?.advance_payment || 0);
-                const html = `<html><head><title>Slip Gaji - ${empName}</title><style>body{font-family:sans-serif;padding:40px;color:#333;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small style="color:#666">Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><div style="margin-bottom:30px; background:#f9f9f9; padding:15px; border-radius:8px;"><p style="margin:0; text-transform:uppercase;"><b>Nama:</b> ${empName}<br><b>No. KP:</b> ${icNumber||'-'}<br><b>Jabatan:</b> ${dept||'-'}<br><b>Jawatan:</b> ${position||'-'}</p></div><div style="display:flex;gap:30px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${(sal.basic_salary || 0).toFixed(2)}</span></div><div class="row"><span>Elaun/Bonus</span><span>RM ${((sal.allowance || 0)+(sal.bonus || 0)).toFixed(2)}</span></div><div class="row"><span>OT (${sal.ot_hours||0} jam)</span><span>RM ${((sal.ot_hours || 0)*(sal.ot_rate || 0)).toFixed(2)}</span></div><br><div class="row" style="border-top:2px solid #333; border-bottom:0; padding-top:10px;"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/SOCSO/EIS</span><span>RM ${((sal.kwsp || 0)+(sal.socso || 0)+(sal.eis || 0)).toFixed(2)}</span></div><div class="row"><span>Cuti Tanpa Gaji (${sal.unpaid_leave_days||0} hari)</span><span>RM ${(sal.unpaid_leave_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Denda Lewat</span><span>RM ${(sal.late_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Advance/Lain-lain</span><span>RM ${((sal.advance_payment || 0)+(sal.other_deductions || 0)).toFixed(2)}</span></div><br><div class="row" style="border-top:2px solid #333; border-bottom:0; padding-top:10px;"><b>Jumlah Potongan</b><b>RM ${deduct.toFixed(2)}</b></div></div></div><h2 style="text-align:center;margin-top:40px;background:#eef2ff;padding:20px;border-radius:8px;color:#1e40af;">GAJI BERSIH: RM ${(gross-deduct).toFixed(2)}</h2></body></html>`;
+                const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small>Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><div style="background:#f9f9f9;padding:15px;border-radius:8px;margin-bottom:20px"><p style="margin:0;text-transform:uppercase"><b>Nama:</b> ${sal.empName}<br><b>IC:</b> ${sal.icNumber||'-'}<br><b>Jabatan:</b> ${sal.dept||'-'}</p></div><div style="display:flex;gap:20px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${(sal.basic_salary || 0).toFixed(2)}</span></div><div class="row"><span>OT</span><span>RM ${((sal.ot_hours || 0)*(sal.ot_rate || 0)).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/Potongan</span><span>RM ${deduct.toFixed(2)}</span></div><br><div class="row"><b>Gaji Bersih</b><b>RM ${(gross-deduct).toFixed(2)}</b></div></div></div></body></html>`;
                 const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
             };
 
             return (
                 <div className="space-y-6">
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="flex gap-2 w-full md:w-auto">
-                            <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50 flex-1 md:flex-none">
-                                <option>2024</option><option>2025</option><option>2026</option><option>2027</option>
-                                <option>2028</option><option>2029</option><option>2030</option>
-                            </select>
-                            <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50 flex-1 md:flex-none">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex gap-2">
+                            <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">{[2024,2025,2026,2027,2028,2029,2030].map(y=><option key={y}>{y}</option>)}</select>
+                            <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
                         </div>
-                        {isAdmin && (
-                            <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                                <button onClick={()=>setShowReport(true)} className="flex-1 md:flex-none px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition flex items-center justify-center gap-2"><IconChartBar size={16}/> Laporan</button>
-                                <button onClick={importStandardData} className="flex-1 md:flex-none px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition whitespace-nowrap">📥 Jana Data Standard</button>
-                                <button onClick={importPukal} className="flex-1 md:flex-none px-4 py-2 bg-amber-50 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition whitespace-nowrap">📥 Templat Kosong</button>
-                                <button onClick={openAdd} className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition flex items-center justify-center gap-1">➕ Tambah Manual</button>
-                            </div>
-                        )}
+                        {isAdmin && <button onClick={importStandardData} className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">📥 Jana Data Standard</button>}
                     </div>
-
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredSalaries.length === 0 ? (
-                            <div className="col-span-full text-center py-12 bg-white rounded-3xl border border-dashed border-slate-300">
-                                <p className="text-slate-500 font-medium mb-4">Tiada rekod slip gaji untuk bulan {MONTHS[parseInt(month)]} {year}.</p>
-                                {isAdmin && (
-                                    <button onClick={importStandardData} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 transition">
-                                        📥 Jana Data Gaji Standard (Untuk Bulan Ini)
-                                    </button>
-                                )}
-                            </div>
-                        ) : 
-                        filteredSalaries.map(s => {
-                            const gross = (s?.basic_salary || 0) + (s?.allowance || 0) + ((s?.ot_hours || 0)*(s?.ot_rate || 0)) + (s?.bonus || 0);
-                            const deduct = (s?.kwsp || 0) + (s?.socso || 0) + (s?.eis || 0) + (s?.other_deductions || 0) + (s?.unpaid_leave_deduction || 0) + (s?.late_deduction || 0) + (s?.advance_payment || 0);
-                            const net = gross - deduct;
-                            const emp = employees.find(e => e.code === s.empCode);
-                            // Kami gunakan s.empName terus dari gaji jika emp tidak dijumpai
-                            const displayName = emp ? emp.name : (s.empName || 'Pekerja Tidak Diketahui');
-                            
-                            return (
-                                <div key={s.id} className="bg-white p-5 rounded-3xl shadow-sm border relative hover:shadow-md transition flex flex-col justify-between h-full">
-                                    <div>
-                                        <div className="flex justify-between items-start mb-4 gap-2">
-                                            <div className="overflow-hidden">
-                                                <h3 className="font-bold text-slate-800 uppercase text-sm leading-tight truncate" title={displayName}>{displayName}</h3>
-                                                <p className="text-xs text-slate-400 mt-1 font-mono">{s.empCode}</p>
-                                            </div>
-                                            <button onClick={()=>printSlip(s, displayName, s.icNumber || emp?.ic, s.dept || emp?.dept, s.position || emp?.position)} className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition flex-shrink-0"><IconPrinter size={20}/></button>
-                                        </div>
-                                        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-4 rounded-2xl mb-4 text-center border border-emerald-100/50">
-                                            <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Gaji Bersih</p>
-                                            <p className="text-3xl font-black text-emerald-700 tracking-tight">RM {net.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
-                                        </div>
-                                        <div className="flex justify-between text-xs text-slate-500 font-medium px-2 mb-4 bg-slate-50 p-2 rounded-lg">
-                                            <span>Kasar: RM {gross.toFixed(2)}</span>
-                                            <span className="text-rose-500">Tolak: RM {deduct.toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                    {isAdmin && (
-                                        <div className="grid grid-cols-2 gap-2 mt-auto">
-                                            <button onClick={()=>openEdit(s)} className="py-2.5 bg-slate-100 rounded-xl text-xs font-bold hover:bg-slate-200 text-slate-700 flex justify-center items-center gap-1"><IconEdit size={14}/> Edit</button>
-                                            <button onClick={()=>deleteSalary(s.id)} className="py-2.5 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex justify-center items-center gap-1"><IconTrash size={14}/> Padam</button>
-                                        </div>
-                                    )}
+                        {filteredSalaries.length === 0 ? <div className="col-span-full text-center py-12 text-slate-400">Tiada rekod untuk bulan ini.</div> : 
+                        filteredSalaries.map(s => (
+                            <div key={s.id} className="bg-white p-5 rounded-3xl shadow-sm border relative animate-fade">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="overflow-hidden"><h3 className="font-bold text-slate-800 uppercase text-sm truncate">{s.empName}</h3><p className="text-xs text-slate-400 mt-1 font-mono">{s.empCode}</p></div>
+                                    <button onClick={()=>printSlip(s)} className="text-blue-600 bg-blue-50 p-2 rounded-xl"><IconPrinter/></button>
                                 </div>
-                            )
-                        })}
+                                <div className="bg-emerald-50 p-4 rounded-2xl mb-4 text-center border border-emerald-100">
+                                    <p className="text-[10px] text-emerald-600 font-bold uppercase">Gaji Bersih</p>
+                                    <p className="text-2xl font-black text-emerald-700">RM {((s?.basic_salary||0)+(s?.allowance||0)+(s?.bonus||0)+((s?.ot_hours||0)*(s?.ot_rate||0)) - ((s?.kwsp||0)+(s?.socso||0)+(s?.eis||0)+(s?.other_deductions||0)+(s?.unpaid_leave_deduction||0)+(s?.advance_payment||0)+(s?.late_deduction||0))).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
+                                </div>
+                                {isAdmin && <div className="grid grid-cols-2 gap-2 mt-4"><button className="py-2 bg-slate-100 rounded-xl text-xs font-bold">Edit</button><button onClick={async()=>{ if(window.confirm("Padam?")) await deleteDoc(doc(db,'artifacts',appId,'public', 'data', 'salaries', s.id))}} className="py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold">Padam</button></div>}
+                            </div>
+                        ))}
                     </div>
-
-                    {/* MODAL EDIT/ADD */}
-                    {modalForm && isAdmin && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fade shadow-2xl">
-                                <div className="sticky top-0 bg-white px-6 py-5 border-b flex justify-between items-center z-10">
-                                    <h2 className="font-black text-xl text-slate-800">{modalForm.mode==='add'?'Tambah Rekod Gaji':'Edit Rekod Gaji'}</h2>
-                                    <button type="button" onClick={closeM} className="p-2 bg-slate-100 hover:bg-slate-200 transition rounded-full text-slate-600">✕</button>
-                                </div>
-                                <form onSubmit={saveSalary} className="p-6 space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {modalForm.mode === 'add' && (
-                                            <div className="col-span-full">
-                                                <label className="text-xs font-bold text-slate-500 block mb-2 uppercase">Pilih Pekerja</label>
-                                                <select className="w-full p-3 border-2 border-slate-200 rounded-xl outline-none font-bold bg-slate-50 focus:border-blue-500 transition" value={modalForm.data.empCode} onChange={e=>handleFormChange(e, 'empCode')}>
-                                                    {employees.filter(e=>(e?.code || '')!=='ADMIN').map(e=><option key={e.code} value={e.code}>{e.name} ({e.code})</option>)}
-                                                </select>
-                                            </div>
-                                        )}
-                                        
-                                        <div className="col-span-full mt-2 border-b pb-2"><h3 className="text-sm font-black text-emerald-600 uppercase flex items-center gap-2">💰 Pendapatan</h3></div>
-                                        
-                                        <div>
-                                            <label className="text-xs font-bold text-slate-500 block mb-1">Gaji Asas (RM)</label>
-                                            <input type="number" step="0.01" className="w-full p-3 border rounded-xl font-bold focus:border-emerald-500 outline-none" value={modalForm.data.basic_salary} onChange={e=>handleFormChange(e, 'basic_salary')} required/>
-                                            <p className="text-[10px] text-emerald-600 font-bold mt-1 ml-1">Kadar Sehari: RM {(parseFloat(modalForm.data.basic_salary||0)/26).toFixed(2)}</p>
-                                        </div>
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">Elaun / Bonus (RM)</label><input type="number" step="0.01" className="w-full p-3 border rounded-xl focus:border-emerald-500 outline-none" value={modalForm.data.allowance} onChange={e=>handleFormChange(e, 'allowance')}/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">Jam OT (Berapa Jam?)</label><input type="number" step="0.5" className="w-full p-3 border rounded-xl focus:border-emerald-500 outline-none" value={modalForm.data.ot_hours} onChange={e=>handleFormChange(e, 'ot_hours')}/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">Kadar OT (RM sejam)</label><input type="number" step="0.01" className="w-full p-3 border rounded-xl focus:border-emerald-500 outline-none" value={modalForm.data.ot_rate} onChange={e=>handleFormChange(e, 'ot_rate')}/></div>
-                                        
-                                        <div className="col-span-full mt-4 border-b pb-2"><h3 className="text-sm font-black text-rose-600 uppercase flex items-center gap-2">📉 Potongan</h3></div>
-                                        
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">KWSP (RM)</label><input type="number" step="0.01" className="w-full p-3 border rounded-xl focus:border-rose-500 outline-none" value={modalForm.data.kwsp} onChange={e=>handleFormChange(e, 'kwsp')}/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">Advance (Pendahuluan) (RM)</label><input type="number" step="0.01" className="w-full p-3 border-2 border-rose-100 rounded-xl text-rose-700 font-bold bg-rose-50 focus:border-rose-500 outline-none" value={modalForm.data.advance_payment} onChange={e=>handleFormChange(e, 'advance_payment')}/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">Lain-lain (SOCSO/EIS) (RM)</label><input type="number" step="0.01" className="w-full p-3 border rounded-xl focus:border-rose-500 outline-none" value={modalForm.data.other_deductions} onChange={e=>handleFormChange(e, 'other_deductions')}/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">Denda Lewat (RM)</label><input type="number" step="0.01" className="w-full p-3 border rounded-xl focus:border-rose-500 outline-none" value={modalForm.data.late_deduction} onChange={e=>handleFormChange(e, 'late_deduction')}/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">Hari Cuti Tanpa Gaji</label><input type="number" min="0" className="w-full p-3 border rounded-xl bg-slate-50 focus:border-rose-500 outline-none" value={modalForm.data.unpaid_leave_days} onChange={e=>handleFormChange(e, 'unpaid_leave_days')}/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 block mb-1">Potongan Cuti (RM) - Auto</label><input type="number" step="0.01" readOnly className="w-full p-3 border border-slate-200 rounded-xl text-rose-500 bg-slate-100 font-bold cursor-not-allowed" value={modalForm.data.unpaid_leave_deduction} /></div>
-                                    </div>
-                                    <button type="submit" className="w-full bg-blue-600 text-white font-bold text-lg py-4 rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 transition mt-6">Simpan Rekod Gaji</button>
-                                </form>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* MODAL LAPORAN */}
-                    {showReport && isAdmin && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-fade shadow-2xl p-8">
-                                <div className="flex justify-between items-center mb-8 border-b pb-4">
-                                    <div>
-                                        <h2 className="font-black text-3xl text-slate-800 tracking-tight">Laporan Keseluruhan</h2>
-                                        <p className="text-sm font-bold text-slate-500 mt-1 uppercase">Tahun {year}</p>
-                                    </div>
-                                    <button onClick={()=>setShowReport(false)} className="p-3 bg-slate-100 hover:bg-slate-200 rounded-full transition">✕</button>
-                                </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                                    <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100">
-                                        <p className="text-[10px] font-bold text-blue-600 uppercase mb-2">J. Kasar (Syarikat)</p>
-                                        <p className="text-xl lg:text-2xl font-black text-slate-800 tracking-tight">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+(s?.basic_salary||0)+(s?.allowance||0)+((s?.ot_hours||0)*(s?.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
-                                    </div>
-                                    <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-100">
-                                        <p className="text-[10px] font-bold text-emerald-600 uppercase mb-2">J. Bersih (Dibayar)</p>
-                                        <p className="text-xl lg:text-2xl font-black text-emerald-700 tracking-tight">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+((s?.basic_salary||0)+(s?.allowance||0)+((s?.ot_hours||0)*(s?.ot_rate||0))-((s?.kwsp||0)+(s?.socso||0)+(s?.eis||0)+(s?.other_deductions||0)+(s?.unpaid_leave_deduction||0)+(s?.advance_payment||0)+(s?.late_deduction||0))),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
-                                    </div>
-                                    <div className="bg-rose-50 p-5 rounded-2xl border border-rose-100">
-                                        <p className="text-[10px] font-bold text-rose-600 uppercase mb-2">J. Potongan KWSP</p>
-                                        <p className="text-xl lg:text-2xl font-black text-rose-700 tracking-tight">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+(s?.kwsp||0),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
-                                    </div>
-                                    <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100">
-                                        <p className="text-[10px] font-bold text-amber-600 uppercase mb-2">J. Bayaran OT</p>
-                                        <p className="text-xl lg:text-2xl font-black text-amber-700 tracking-tight">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+((s?.ot_hours||0)*(s?.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
-                                    </div>
-                                </div>
-                                <div className="bg-slate-50 p-4 rounded-xl text-center">
-                                    <p className="text-sm font-medium text-slate-500 italic">Sila gunakan perisian perakaunan rasmi syarikat untuk mencetak penyata tahunan (EA Form) yang sah.</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
             );
         }
 
-        // ==========================================
-        // MODUL 2: SENARAI PEKERJA (ADMIN)
-        // ==========================================
-        function ModuleAdmin({ employees, showToast, db }) {
-            const [empForm, setEmpForm] = useState(null);
-
-            const saveEmp = async (e) => {
+        function ModuleAdmin({ employees, showToast, db, appId }) {
+            const { doc, setDoc } = window.fbModules;
+            const [form, setForm] = useState(null);
+            const save = async (e) => {
                 e.preventDefault();
                 try {
-                    await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', empForm.code.toUpperCase()), { ...empForm, code: empForm.code.toUpperCase(), name: empForm.name.toUpperCase(), basic: parseFloat(empForm.basic)||0 }, {merge:true});
-                    showToast("Profil Pekerja Disimpan", "success"); setEmpForm(null);
-                } catch(err) { 
-                    console.warn("Gagal simpan pekerja (Luar Talian):", err.message);
-                    showToast("Gagal menyimpan profil. Sila periksa Rules Firebase.", "error"); 
-                }
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', form.code.toUpperCase()), { ...form, code: form.code.toUpperCase(), name: form.name.toUpperCase(), basic: parseFloat(form.basic)||0 }, {merge:true});
+                    showToast("Tersimpan!", "success"); setForm(null);
+                } catch(err) { showToast("Gagal simpan.", "error"); }
             };
-
-            const deleteEmp = async (code) => {
-                if(window.confirm("Padam pekerja ini dari sistem?")) {
-                    try {
-                        await window.fbModules.deleteDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', code));
-                    } catch(err) {
-                        console.warn("Gagal padam pekerja (Luar Talian):", err.message);
-                        showToast("Gagal memadam. Sila periksa Rules Firebase.", "error"); 
-                    }
-                }
-            };
-
             return (
-                <div className="space-y-6 max-w-5xl mx-auto">
-                    <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                        <div className="p-6 bg-slate-50 border-b flex justify-between items-center">
-                            <h3 className="font-black text-xl text-slate-800 flex items-center gap-2"><IconUsers/> Direktori Pekerja</h3>
-                            <button onClick={()=>setEmpForm({code:'',name:'',dept:'',position:'',basic:0,ic:''})} className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl shadow-md shadow-blue-600/20 hover:bg-blue-700 transition flex items-center gap-2">➕ Tambah Baru</button>
-                        </div>
-                        <div className="overflow-x-auto p-4">
-                            <table className="w-full text-left text-sm whitespace-nowrap">
-                                <thead className="bg-white text-xs text-slate-400 font-bold uppercase border-b-2">
-                                    <tr><th className="p-4 pb-3">Kod Login</th><th className="p-4 pb-3">Nama</th><th className="p-4 pb-3">Jawatan / Jabatan</th><th className="p-4 pb-3">Gaji Asas</th><th className="p-4 pb-3 w-32 text-right">Tindakan</th></tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {employees.map(e => (
-                                        <tr key={e.code} className="hover:bg-slate-50/50 transition">
-                                            <td className="p-4 font-mono font-bold text-slate-500">{e?.code || ''}</td>
-                                            <td className="p-4 font-bold text-slate-800 uppercase">{e?.name || ''}</td>
-                                            <td className="p-4 text-xs font-medium text-slate-600">{e?.position || '-'} <br/><span className="text-blue-500">{e?.dept || '-'}</span></td>
-                                            <td className="p-4 text-emerald-600 font-black">RM {e?.basic || 0}</td>
-                                            <td className="p-4">
-                                                <div className="flex gap-2 justify-end">
-                                                    <button onClick={()=>setEmpForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition flex items-center gap-1"><IconEdit size={14}/> Edit Profil</button>
-                                                    {(e?.code || '') !== 'ADMIN' && <button onClick={()=>deleteEmp(e.code)} className="p-1.5 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition"><IconTrash size={16}/></button>}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    {empForm && (
-                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                            <div className="bg-white rounded-3xl w-full max-w-xl p-8 shadow-2xl animate-fade">
-                                <h2 className="font-black text-2xl mb-6 border-b pb-4 text-slate-800">{empForm.code && employees.some(e=>e.code===empForm.code) ? 'Kemaskini Profil Pekerja' : 'Daftar Pekerja Baru'}</h2>
-                                <form onSubmit={saveEmp} className="space-y-5">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kod Login (Unik)</label><input type="text" disabled={empForm.code !== '' && employees.some(e=>(e?.code || '')===empForm.code)} value={empForm.code} onChange={e=>setEmpForm({...empForm,code:e.target.value.toUpperCase()})} className="w-full p-3 border-2 border-slate-200 rounded-xl uppercase bg-slate-50 font-mono focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: MZBE012025" required/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">No. Kad Pengenalan</label><input type="text" value={empForm.ic} onChange={e=>setEmpForm({...empForm,ic:e.target.value})} className="w-full p-3 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: 900101-01-1234"/></div>
-                                        <div className="md:col-span-2"><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Nama Penuh</label><input type="text" value={empForm.name} onChange={e=>setEmpForm({...empForm,name:e.target.value.toUpperCase()})} className="w-full p-3 border-2 border-slate-200 rounded-xl uppercase focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Nama mengikut IC" required/></div>
-                                        
-                                        <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Jabatan</label><input type="text" value={empForm.dept} onChange={e=>setEmpForm({...empForm,dept:e.target.value})} className="w-full p-3 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: Pengeluaran" required/></div>
-                                        <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Jawatan</label><input type="text" value={empForm.position} onChange={e=>setEmpForm({...empForm,position:e.target.value})} className="w-full p-3 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: Operator Mesin" required/></div>
-                                        
-                                        <div className="md:col-span-2 mt-2 pt-4 border-t"><label className="text-xs font-black text-emerald-600 mb-1 block uppercase tracking-wider">Gaji Asas Bulanan (RM)</label><input type="number" step="0.01" value={empForm.basic} onChange={e=>setEmpForm({...empForm,basic:e.target.value})} className="w-full p-4 text-lg border-2 border-emerald-200 bg-emerald-50/30 rounded-xl outline-none focus:border-emerald-500 focus:bg-white font-black text-emerald-800 transition" placeholder="0.00" required/></div>
-                                    </div>
-                                    <div className="flex gap-3 pt-6"><button type="button" onClick={()=>setEmpForm(null)} className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-xl font-bold hover:bg-slate-200 transition">Batal</button><button type="submit" className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-600/30">Simpan Profil</button></div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
+                <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
+                    <div className="p-6 bg-slate-50 border-b flex justify-between items-center"><h3 className="font-black text-xl text-slate-800">Direktori Pekerja</h3><button onClick={()=>setForm({code:'',name:'',dept:'',position:'',basic:0,ic:''})} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md">➕ Tambah</button></div>
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm whitespace-nowrap"><thead className="bg-white text-xs text-slate-400 font-bold uppercase border-b-2"><tr><th className="p-4">Kod</th><th className="p-4">Nama</th><th className="p-4">Gaji Asas</th><th className="p-4 text-right">Tindakan</th></tr></thead><tbody className="divide-y divide-slate-100">{employees.map(e=>(<tr key={e.code} className="hover:bg-slate-50 transition"><td className="p-4 font-mono font-bold text-slate-500">{e.code}</td><td className="p-4 font-bold text-slate-800 uppercase">{e.name}</td><td className="p-4 font-bold text-emerald-600">RM {e.basic}</td><td className="p-4 text-right flex gap-2 justify-end"><button onClick={()=>setForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center gap-1"><IconEdit size={14}/> Edit Profil</button></td></tr>))}</tbody></table></div>
+                    {form && <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-3xl w-full max-w-xl p-8 shadow-2xl animate-fade"><h2 className="font-black text-2xl mb-6 border-b pb-4">{form.code ? 'Edit Profil' : 'Daftar Pekerja'}</h2><form onSubmit={save} className="space-y-4"><input type="text" placeholder="KOD LOGIN" value={form.code} onChange={e=>setForm({...form,code:e.target.value})} className="w-full p-3 border-2 rounded-xl uppercase font-mono" required/><input type="text" placeholder="NAMA PENUH" value={form.name} onChange={e=>setForm({...form,name:e.target.value.toUpperCase()})} className="w-full p-3 border-2 rounded-xl uppercase" required/><input type="text" placeholder="NO IC" value={form.ic} onChange={e=>setForm({...form,ic:e.target.value})} className="w-full p-3 border-2 rounded-xl"/><div className="grid grid-cols-2 gap-4"><input type="text" placeholder="JABATAN" value={form.dept} onChange={e=>setForm({...form,dept:e.target.value})} className="p-3 border-2 rounded-xl"/><input type="text" placeholder="JAWATAN" value={form.position} onChange={e=>setForm({...form,position:e.target.value})} className="p-3 border-2 rounded-xl"/></div><input type="number" placeholder="GAJI ASAS" value={form.basic} onChange={e=>setForm({...form,basic:e.target.value})} className="w-full p-4 border-2 border-emerald-200 bg-emerald-50/20 rounded-xl text-lg font-black text-emerald-800" required/><div className="flex gap-3 pt-6"><button type="button" onClick={()=>setForm(null)} className="flex-1 bg-slate-100 py-4 rounded-xl font-bold">Batal</button><button type="submit" className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">Simpan</button></div></form></div></div>}
                 </div>
             );
         }
 
         // ==========================================
-        // KOMPONEN UTAMA (MainApp)
+        // MAIN APP
         // ==========================================
         function MainApp() {
             const [user, setUser] = useState(null);
@@ -547,7 +221,7 @@
             const [employees, setEmployees] = useState([]);
             const [salaries, setSalaries] = useState([]);
             const [toast, setToast] = useState(null);
-            const [isDbReady, setIsDbReady] = useState(false);
+            const [isReady, setIsReady] = useState(false);
 
             const { initializeApp, getFirestore, collection, doc, onSnapshot, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, setDoc } = window.fbModules;
 
@@ -563,121 +237,63 @@
             const app = initializeApp(firebaseConfig);
             const db = getFirestore(app);
             const auth = getAuth(app);
+            const appId = typeof __app_id !== 'undefined' ? __app_id : APP_ID;
 
             const showToast = useCallback((msg, type = 'info') => {
                 setToast({ msg, type });
-                setTimeout(() => setToast(null), 4000);
+                setTimeout(() => setToast(null), 3000);
             }, []);
 
-            // 1. AUTH FIRST
             useEffect(() => {
-                let isMounted = true;
-                const initAuth = async () => {
+                const init = async () => {
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (e) { 
-                        if(isMounted) console.warn("Auth Fail:", e.message); 
-                    }
+                        } else { await signInAnonymously(auth); }
+                    } catch (e) { console.warn(e.message); }
                 };
-                initAuth();
-                const unsubscribe = onAuthStateChanged(auth, user => { 
-                    if(isMounted) setUser(user); 
-                });
-                return () => {
-                    isMounted = false;
-                    unsubscribe();
-                };
+                init();
+                const unsubscribe = onAuthStateChanged(auth, setUser);
+                return () => unsubscribe();
             }, [auth, signInAnonymously, signInWithCustomToken]);
 
-            // 2. MEMUATKAN DATA DEFAULT ATAU FIREBASE
             useEffect(() => {
-                let isMounted = true;
-                
-                const loadData = async () => {
-                    setEmployees(DEFAULT_EMPLOYEES);
-                    setIsDbReady(true);
-                }
-
-                if (!user) {
-                   loadData();
-                   return;
-                }
-                
-                let unsubscribeEmp;
-                let unsubscribeSal;
-                
-                try {
-                    const bPath = ['artifacts', APP_ID, 'public', 'data'];
-                    
-                    unsubscribeEmp = onSnapshot(collection(db, ...bPath, 'employees'), 
-                        snap => { 
-                            if(!isMounted) return;
-                            const emps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                            if(emps.length === 0) {
-                                DEFAULT_EMPLOYEES.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e).catch(err => {}));
-                                setEmployees(DEFAULT_EMPLOYEES);
-                            } else { 
-                                setEmployees(emps); 
-                            }
-                            setIsDbReady(true); 
-                        },
-                        err => {
-                            if(isMounted) {
-                                console.warn("Pangkalan data Disekat (Emp):", err.message);
-                                setEmployees(DEFAULT_EMPLOYEES);
-                                setIsDbReady(true);
-                            }
-                        }
-                    );
-                    
-                    unsubscribeSal = onSnapshot(collection(db, ...bPath, 'salaries'), 
-                        snap => {
-                            if(isMounted) setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                        },
-                        err => {
-                            if(isMounted) console.warn("Pangkalan data Disekat (Sal):", err.message);
-                        }
-                    );
-                } catch(error) {
-                    if(isMounted) {
-                        console.warn("Gagal Membina Pendengar Database:", error.message);
+                if (!user) return;
+                const bPath = ['artifacts', appId, 'public', 'data'];
+                const unsubEmp = onSnapshot(collection(db, ...bPath, 'employees'), snap => {
+                    const emps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    if (emps.length === 0) {
+                        DEFAULT_EMPLOYEES.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e).catch(err => {}));
                         setEmployees(DEFAULT_EMPLOYEES);
-                        setIsDbReady(true);
-                    }
-                }
+                    } else { setEmployees(emps); }
+                    setIsReady(true);
+                }, err => console.warn(err.message));
 
-                return () => { 
-                    isMounted = false;
-                    if(unsubscribeEmp) unsubscribeEmp(); 
-                    if(unsubscribeSal) unsubscribeSal(); 
-                };
-            }, [user, db, showToast]);
+                const unsubSal = onSnapshot(collection(db, ...bPath, 'salaries'), snap => {
+                    setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                }, err => console.warn(err.message));
 
-            if (!currentUser) return <LoginScreen employees={employees} onLogin={setCurrentUser} isReady={isDbReady} showToast={showToast} />;
+                return () => { unsubEmp(); unsubSal(); };
+            }, [user, db, appId, setDoc, doc]);
+
+            if (!currentUser) return <LoginScreen employees={employees} onLogin={setCurrentUser} isReady={isReady} showToast={showToast} />;
 
             return (
                 <div className="min-h-screen flex flex-col bg-slate-100">
-                    <header className="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center z-20">
-                        <div className="flex items-center gap-4">
-                            <BrandLogo size="small" />
-                            <div><h1 className="font-bold tracking-tight">Sistem Gaji MBE</h1><p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{currentUser.name}</p></div>
-                        </div>
-                        <button onClick={() => setCurrentUser(null)} className="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition"><IconLogOut/> Keluar</button>
+                    <header className="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-30">
+                        <div className="flex items-center gap-4"><BrandLogo size="small" /><div><h1 className="font-bold tracking-tight">Sistem Gaji MBE</h1><p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{currentUser.name}</p></div></div>
+                        <button onClick={() => setCurrentUser(null)} className="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition"><IconLogOut size={16}/> Keluar</button>
                     </header>
-                    <div className="bg-white border-b shadow-sm z-10 overflow-x-auto hide-scroll sticky top-0">
-                        <div className="max-w-7xl mx-auto px-4 flex gap-6">
-                            <TabBtn label={currentUser.code === 'ADMIN' ? "Urusan Gaji" : "Slip Gaji Saya"} icon="💰" active={activeTab === 'salary'} onClick={() => setActiveTab('salary')} />
-                            {currentUser.code === 'ADMIN' && <TabBtn label="Direktori Pekerja" icon="👨‍💼" active={activeTab === 'admin'} onClick={() => setActiveTab('admin')} />}
+                    <div className="bg-white border-b shadow-sm sticky top-[64px] z-20 overflow-x-auto">
+                        <div className="max-w-7xl mx-auto px-4 flex gap-6 whitespace-nowrap">
+                            <button onClick={()=>setActiveTab('salary')} className={`px-4 py-4 font-bold text-sm border-b-2 transition-colors ${activeTab==='salary'?'border-blue-600 text-blue-700':'border-transparent text-slate-500'}`}>💰 Urusan Gaji</button>
+                            {currentUser.code === 'ADMIN' && <button onClick={()=>setActiveTab('admin')} className={`px-4 py-4 font-bold text-sm border-b-2 transition-colors ${activeTab==='admin'?'border-blue-600 text-blue-700':'border-transparent text-slate-500'}`}>👨‍💼 Direktori Pekerja</button>}
                         </div>
                     </div>
-                    <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-                        <div className="max-w-7xl mx-auto animate-fade">
-                            {activeTab === 'salary' && <ModuleSalary user={currentUser} salaries={salaries} employees={employees} showToast={showToast} db={db} />}
-                            {activeTab === 'admin' && currentUser?.code === 'ADMIN' && <ModuleAdmin employees={employees} showToast={showToast} db={db} />}
+                    <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+                        <div className="animate-fade">
+                            {activeTab === 'salary' && <ModuleSalary user={currentUser} salaries={salaries} employees={employees} showToast={showToast} db={db} appId={appId} />}
+                            {activeTab === 'admin' && currentUser?.code === 'ADMIN' && <ModuleAdmin employees={employees} showToast={showToast} db={db} appId={appId} />}
                         </div>
                     </main>
                     {toast && (
@@ -689,11 +305,8 @@
             );
         }
 
-        const rootElement = document.getElementById('root');
-        if (rootElement) {
-            const root = ReactDOM.createRoot(rootElement);
-            root.render(<MainApp />);
-        }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MainApp />);
     </script>
 </body>
 </html>
