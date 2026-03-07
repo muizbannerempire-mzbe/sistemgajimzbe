@@ -32,11 +32,25 @@
 
     <!-- Aplikasi React -->
     <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
+        const { useState, useEffect, useCallback, Fragment } = React;
 
         // --- KONFIGURASI GLOBAL ---
-        const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'sistemgajimzbe'; 
+        const APP_ID = 'sistemgajimzbe'; 
         const MONTHS = ['', 'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+
+        const DEFAULT_EMPLOYEES = [
+            { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '040421110053' },
+            { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', basic: 2100, ic: '980416036979' },
+            { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', basic: 2000, ic: '000917110384' },
+            { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', basic: 2300, ic: '971017385034' },
+            { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '' },
+            { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', basic: 2300, ic: '000417080975' },
+            { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '070909030855' },
+            { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '010815110403' },
+            { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', basic: 1700, ic: '930905115074' },
+            { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' },
+            { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
+        ];
 
         // --- IKON TERBINA DALAM ---
         const IconLogOut = ({size=18, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
@@ -55,11 +69,11 @@
             return (
                 <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-8' : 'mb-0 shrink-0'}`}>
                     <img 
-                        src="https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=true&bold=true" 
+                        src="./logo.png" 
                         alt="MBE Logo" 
                         style={{ height: size === 'large' ? '90px' : '36px', width: 'auto', objectFit: 'contain' }} 
-                        className={size === 'large' ? 'mb-4 shadow-xl rounded-full border-4 border-white' : 'shadow-sm rounded-full border-2 border-white'} 
-                        onError={e => { e.target.onerror=null; e.target.style.display='none'; }} 
+                        className={size === 'large' ? 'mb-4 shadow-xl rounded-full border-4 border-white bg-white' : 'shadow-sm rounded-full border-2 border-white bg-white'} 
+                        onError={e => { e.target.onerror=null; e.target.src='https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=true&bold=true'; }} 
                     />
                     {size === 'large' && <div className="text-center"><h1 className="text-2xl font-black text-slate-800 tracking-tight">MUIZ BANNER</h1><p className="text-xs font-bold text-blue-600 uppercase tracking-[0.3em] mt-1">Sistem Gaji</p></div>}
                 </div>
@@ -181,7 +195,7 @@
                 const recordId = modalForm.mode === 'edit' ? d.id : `sal_${d.empCode}_${year}_${month}`;
                 
                 const finalData = {
-                    empCode: d.empCode, empName: emp?.name || '', icNumber: emp?.ic || '', year, month,
+                    empCode: d.empCode, empName: emp?.name || '', icNumber: emp?.ic || '', dept: emp?.dept || '', position: emp?.position || '', year, month,
                     basic_salary: parseFloat(d.basic_salary)||0, allowance: parseFloat(d.allowance)||0, ot_hours: parseFloat(d.ot_hours)||0, ot_rate: parseFloat(d.ot_rate)||0, bonus: parseFloat(d.bonus)||0, advance_payment: parseFloat(d.advance_payment)||0,
                     kwsp: parseFloat(d.kwsp)||0, socso: parseFloat(d.socso)||0, eis: parseFloat(d.eis)||0, other_deductions: parseFloat(d.other_deductions)||0, late_deduction: parseFloat(d.late_deduction)||0,
                     unpaid_leave_days: parseInt(d.unpaid_leave_days)||0, unpaid_leave_deduction: parseFloat(d.unpaid_leave_deduction)||0,
@@ -204,7 +218,7 @@
                     for (const emp of employees.filter(e => (e?.code || '') !== 'ADMIN')) {
                         const id = `sal_${emp.code}_${year}_${month}`;
                         const def = getDefaultsFromEmp(emp.code);
-                        await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id), { empCode: emp.code, empName: emp.name, icNumber: emp.ic||'', year, month, ...def, updatedAt: new Date().toISOString() }, {merge:true});
+                        await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id), { empCode: emp.code, empName: emp.name, icNumber: emp.ic||'', dept: emp.dept||'', position: emp.position||'', year, month, ...def, updatedAt: new Date().toISOString() }, {merge:true});
                     }
                     showToast('Selesai dibina!', 'success');
                 } catch(err) {
@@ -212,31 +226,33 @@
                 }
             };
 
+            // FUNGSI INI AKAN MENULIS SEMULA NAMA-NAMA YANG HILANG SEBELUM INI KE DALAM DATABASE
             const importFeb2026Data = async () => {
-                if(!window.confirm("Anda pasti mahu import data spesifik Gaji Februari 2026? Ia akan menggantikan rekod semasa.")) return;
+                if(!window.confirm("Anda pasti mahu import data spesifik Gaji Februari 2026? Ia akan menggantikan rekod semasa dan membetulkan nama yang hilang.")) return;
                 showToast('Memuat naik data Februari 2026...', 'info');
                 
                 const febData = [
-                    { empCode: 'MZBE012024', advance_payment: 700, kwsp: 198, basic_salary: 1800 },
-                    { empCode: 'MZBE092022', advance_payment: 800, kwsp: 231, basic_salary: 2100 },
-                    { empCode: 'MZBE102022', advance_payment: 800, kwsp: 220, basic_salary: 2000 },
-                    { empCode: 'MZBE072022', advance_payment: 1000, kwsp: 253, basic_salary: 2300 },
-                    { empCode: 'MZBE022024', advance_payment: 0, kwsp: 198, basic_salary: 1800 },
-                    { empCode: 'MZBE082022', advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, basic_salary: 2300 },
-                    { empCode: 'MZBE022025', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
-                    { empCode: 'MZBE032025', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
-                    { empCode: 'MZBE042025', advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, basic_salary: 1700 },
-                    { empCode: 'MZBEBOSS001', advance_payment: 0, kwsp: 352, basic_salary: 3500 }
+                    { empCode: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '040421110053', advance_payment: 700, kwsp: 198, basic_salary: 1800 },
+                    { empCode: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', ic: '980416036979', advance_payment: 800, kwsp: 231, basic_salary: 2100 },
+                    { empCode: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', ic: '000917110384', advance_payment: 800, kwsp: 220, basic_salary: 2000 },
+                    { empCode: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', ic: '971017385034', advance_payment: 1000, kwsp: 253, basic_salary: 2300 },
+                    { empCode: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '', advance_payment: 0, kwsp: 198, basic_salary: 1800 },
+                    { empCode: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', ic: '000417080975', advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, basic_salary: 2300 },
+                    { empCode: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '070909030855', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
+                    { empCode: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '010815110403', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
+                    { empCode: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', ic: '930905115074', advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, basic_salary: 1700 },
+                    { empCode: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', ic: '990331037699', advance_payment: 0, kwsp: 352, basic_salary: 3500 }
                 ];
                 
                 try {
                     for (const data of febData) {
                         const recordId = `sal_${data.empCode}_2026_2`;
-                        const emp = employees.find(e => e.code === data.empCode) || { name: 'Pekerja Tidak Diketahui', ic: '' };
                         const finalData = {
                             empCode: data.empCode,
-                            empName: emp.name,
-                            icNumber: emp.ic || '',
+                            empName: data.name, // Hardcode nama sebenar supaya ia ter-reset dalam DB
+                            icNumber: data.ic,
+                            dept: data.dept,
+                            position: data.position,
                             year: '2026',
                             month: '2',
                             basic_salary: data.basic_salary || 0,
@@ -269,22 +285,25 @@
             const printSlip = (sal, empName, icNumber, dept, position) => {
                 const gross = (sal?.basic_salary || 0) + (sal?.allowance || 0) + ((sal?.ot_hours || 0)*(sal?.ot_rate || 0)) + (sal?.bonus || 0);
                 const deduct = (sal?.kwsp || 0) + (sal?.socso || 0) + (sal?.eis || 0) + (sal?.other_deductions || 0) + (sal?.unpaid_leave_deduction || 0) + (sal?.late_deduction || 0) + (sal?.advance_payment || 0);
-                const html = `<html><head><title>Slip Gaji - ${empName}</title><style>body{font-family:sans-serif;padding:40px;color:#333;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small style="color:#666">Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><div style="margin-bottom:30px; background:#f9f9f9; padding:15px; border-radius:8px;"><p style="margin:0;"><b>Nama:</b> ${empName}<br><b>No. KP:</b> ${icNumber||'-'}<br><b>Jabatan:</b> ${dept||'-'}<br><b>Jawatan:</b> ${position||'-'}</p></div><div style="display:flex;gap:30px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${(sal.basic_salary || 0).toFixed(2)}</span></div><div class="row"><span>Elaun/Bonus</span><span>RM ${((sal.allowance || 0)+(sal.bonus || 0)).toFixed(2)}</span></div><div class="row"><span>OT (${sal.ot_hours||0} jam)</span><span>RM ${((sal.ot_hours || 0)*(sal.ot_rate || 0)).toFixed(2)}</span></div><br><div class="row" style="border-top:2px solid #333; border-bottom:0; padding-top:10px;"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/SOCSO/EIS</span><span>RM ${((sal.kwsp || 0)+(sal.socso || 0)+(sal.eis || 0)).toFixed(2)}</span></div><div class="row"><span>Cuti Tanpa Gaji (${sal.unpaid_leave_days||0} hari)</span><span>RM ${(sal.unpaid_leave_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Denda Lewat</span><span>RM ${(sal.late_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Advance/Lain-lain</span><span>RM ${((sal.advance_payment || 0)+(sal.other_deductions || 0)).toFixed(2)}</span></div><br><div class="row" style="border-top:2px solid #333; border-bottom:0; padding-top:10px;"><b>Jumlah Potongan</b><b>RM ${deduct.toFixed(2)}</b></div></div></div><h2 style="text-align:center;margin-top:40px;background:#eef2ff;padding:20px;border-radius:8px;color:#1e40af;">GAJI BERSIH: RM ${(gross-deduct).toFixed(2)}</h2></body></html>`;
+                const html = `<html><head><title>Slip Gaji - ${empName}</title><style>body{font-family:sans-serif;padding:40px;color:#333;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small style="color:#666">Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><div style="margin-bottom:30px; background:#f9f9f9; padding:15px; border-radius:8px;"><p style="margin:0; text-transform:uppercase;"><b>Nama:</b> ${empName}<br><b>No. KP:</b> ${icNumber||'-'}<br><b>Jabatan:</b> ${dept||'-'}<br><b>Jawatan:</b> ${position||'-'}</p></div><div style="display:flex;gap:30px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${(sal.basic_salary || 0).toFixed(2)}</span></div><div class="row"><span>Elaun/Bonus</span><span>RM ${((sal.allowance || 0)+(sal.bonus || 0)).toFixed(2)}</span></div><div class="row"><span>OT (${sal.ot_hours||0} jam)</span><span>RM ${((sal.ot_hours || 0)*(sal.ot_rate || 0)).toFixed(2)}</span></div><br><div class="row" style="border-top:2px solid #333; border-bottom:0; padding-top:10px;"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/SOCSO/EIS</span><span>RM ${((sal.kwsp || 0)+(sal.socso || 0)+(sal.eis || 0)).toFixed(2)}</span></div><div class="row"><span>Cuti Tanpa Gaji (${sal.unpaid_leave_days||0} hari)</span><span>RM ${(sal.unpaid_leave_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Denda Lewat</span><span>RM ${(sal.late_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Advance/Lain-lain</span><span>RM ${((sal.advance_payment || 0)+(sal.other_deductions || 0)).toFixed(2)}</span></div><br><div class="row" style="border-top:2px solid #333; border-bottom:0; padding-top:10px;"><b>Jumlah Potongan</b><b>RM ${deduct.toFixed(2)}</b></div></div></div><h2 style="text-align:center;margin-top:40px;background:#eef2ff;padding:20px;border-radius:8px;color:#1e40af;">GAJI BERSIH: RM ${(gross-deduct).toFixed(2)}</h2></body></html>`;
                 const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
             };
 
             return (
                 <div className="space-y-6">
                     <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="flex gap-2">
-                            <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50"><option>2024</option><option>2025</option><option>2026</option></select>
-                            <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
+                        <div className="flex gap-2 w-full md:w-auto">
+                            <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50 flex-1 md:flex-none">
+                                <option>2024</option><option>2025</option><option>2026</option><option>2027</option>
+                                <option>2028</option><option>2029</option><option>2030</option>
+                            </select>
+                            <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50 flex-1 md:flex-none">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
                         </div>
                         {isAdmin && (
                             <div className="flex flex-wrap gap-2 w-full md:w-auto">
                                 <button onClick={()=>setShowReport(true)} className="flex-1 md:flex-none px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition flex items-center justify-center gap-2"><IconChartBar size={16}/> Laporan</button>
-                                <button onClick={importFeb2026Data} className="flex-1 md:flex-none px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition">📥 Data Feb 2026</button>
-                                <button onClick={importPukal} className="flex-1 md:flex-none px-4 py-2 bg-amber-50 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition">📥 Templat Kosong</button>
+                                <button onClick={importFeb2026Data} className="flex-1 md:flex-none px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition whitespace-nowrap">📥 Data Feb 2026</button>
+                                <button onClick={importPukal} className="flex-1 md:flex-none px-4 py-2 bg-amber-50 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition whitespace-nowrap">📥 Templat Kosong</button>
                                 <button onClick={openAdd} className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition flex items-center justify-center gap-1">➕ Tambah</button>
                             </div>
                         )}
@@ -297,27 +316,30 @@
                             const deduct = (s?.kwsp || 0) + (s?.socso || 0) + (s?.eis || 0) + (s?.other_deductions || 0) + (s?.unpaid_leave_deduction || 0) + (s?.late_deduction || 0) + (s?.advance_payment || 0);
                             const net = gross - deduct;
                             const emp = employees.find(e => e.code === s.empCode);
-                            const displayName = emp ? emp.name : 'Pekerja Tidak Diketahui';
+                            // Kami gunakan s.empName terus dari gaji jika emp tidak dijumpai
+                            const displayName = emp ? emp.name : (s.empName || 'Pekerja Tidak Diketahui');
                             
                             return (
-                                <div key={s.id} className="bg-white p-5 rounded-3xl shadow-sm border relative hover:shadow-md transition">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 className="font-bold text-slate-800 uppercase text-sm leading-tight pr-2">{displayName}</h3>
-                                            <p className="text-xs text-slate-400 mt-1">{s.empCode}</p>
+                                <div key={s.id} className="bg-white p-5 rounded-3xl shadow-sm border relative hover:shadow-md transition flex flex-col justify-between h-full">
+                                    <div>
+                                        <div className="flex justify-between items-start mb-4 gap-2">
+                                            <div className="overflow-hidden">
+                                                <h3 className="font-bold text-slate-800 uppercase text-sm leading-tight truncate" title={displayName}>{displayName}</h3>
+                                                <p className="text-xs text-slate-400 mt-1 font-mono">{s.empCode}</p>
+                                            </div>
+                                            <button onClick={()=>printSlip(s, displayName, s.icNumber || emp?.ic, s.dept || emp?.dept, s.position || emp?.position)} className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition flex-shrink-0"><IconPrinter size={20}/></button>
                                         </div>
-                                        <button onClick={()=>printSlip(s, displayName, emp?.ic, emp?.dept, emp?.position)} className="text-blue-600 bg-blue-50 hover:bg-blue-100 p-2 rounded-xl transition"><IconPrinter size={20}/></button>
-                                    </div>
-                                    <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-4 rounded-2xl mb-4 text-center border border-emerald-100/50">
-                                        <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Gaji Bersih</p>
-                                        <p className="text-3xl font-black text-emerald-700 tracking-tight">RM {net.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
-                                    </div>
-                                    <div className="flex justify-between text-xs text-slate-500 font-medium px-2 mb-4 bg-slate-50 p-2 rounded-lg">
-                                        <span>Kasar: RM {gross.toFixed(2)}</span>
-                                        <span className="text-rose-500">Tolak: RM {deduct.toFixed(2)}</span>
+                                        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-4 rounded-2xl mb-4 text-center border border-emerald-100/50">
+                                            <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider mb-1">Gaji Bersih</p>
+                                            <p className="text-3xl font-black text-emerald-700 tracking-tight">RM {net.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-slate-500 font-medium px-2 mb-4 bg-slate-50 p-2 rounded-lg">
+                                            <span>Kasar: RM {gross.toFixed(2)}</span>
+                                            <span className="text-rose-500">Tolak: RM {deduct.toFixed(2)}</span>
+                                        </div>
                                     </div>
                                     {isAdmin && (
-                                        <div className="grid grid-cols-2 gap-2 mt-4">
+                                        <div className="grid grid-cols-2 gap-2 mt-auto">
                                             <button onClick={()=>openEdit(s)} className="py-2.5 bg-slate-100 rounded-xl text-xs font-bold hover:bg-slate-200 text-slate-700 flex justify-center items-center gap-1"><IconEdit size={14}/> Edit</button>
                                             <button onClick={()=>deleteSalary(s.id)} className="py-2.5 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 flex justify-center items-center gap-1"><IconTrash size={14}/> Padam</button>
                                         </div>
@@ -549,9 +571,19 @@
                 };
             }, [auth, signInAnonymously, signInWithCustomToken]);
 
-            // 2. DATA SNAPSHOTS (ONLY IF AUTHENTICATED)
+            // 2. MEMUATKAN DATA DEFAULT ATAU FIREBASE
             useEffect(() => {
-                if (!user) return;
+                let isMounted = true;
+                
+                const loadData = async () => {
+                    setEmployees(DEFAULT_EMPLOYEES);
+                    setIsDbReady(true);
+                }
+
+                if (!user) {
+                   loadData();
+                   return;
+                }
                 
                 let unsubscribeEmp;
                 let unsubscribeSal;
@@ -561,44 +593,43 @@
                     
                     unsubscribeEmp = onSnapshot(collection(db, ...bPath, 'employees'), 
                         snap => { 
+                            if(!isMounted) return;
                             const emps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
                             if(emps.length === 0) {
-                                const defaultEmps = [
-                                    { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '040421110053' },
-                                    { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', basic: 2100, ic: '980416036979' },
-                                    { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', basic: 2000, ic: '000917110384' },
-                                    { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', basic: 2300, ic: '971017385034' },
-                                    { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '' },
-                                    { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', basic: 2300, ic: '000417080975' },
-                                    { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '070909030855' },
-                                    { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '010815110403' },
-                                    { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', basic: 1700, ic: '930905115074' },
-                                    { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' },
-                                    { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
-                                ];
-                                defaultEmps.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e).catch(err => {}));
+                                DEFAULT_EMPLOYEES.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e).catch(err => {}));
+                                setEmployees(DEFAULT_EMPLOYEES);
                             } else { 
                                 setEmployees(emps); 
-                                setIsDbReady(true); 
                             }
+                            setIsDbReady(true); 
                         },
                         err => {
-                            console.error("Permission Denied (Emp):", err);
-                            showToast("Sila betulkan 'Rules' di Firestore.", "error");
+                            if(isMounted) {
+                                console.error("Permission Denied (Emp):", err);
+                                setEmployees(DEFAULT_EMPLOYEES);
+                                setIsDbReady(true);
+                            }
                         }
                     );
                     
                     unsubscribeSal = onSnapshot(collection(db, ...bPath, 'salaries'), 
-                        snap => setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+                        snap => {
+                            if(isMounted) setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                        },
                         err => {
-                            console.error("Permission Denied (Sal):", err);
+                            if(isMounted) console.error("Permission Denied (Sal):", err);
                         }
                     );
                 } catch(error) {
-                    console.error("Setup Listeners Failed:", error);
+                    if(isMounted) {
+                        console.error("Setup Listeners Failed:", error);
+                        setEmployees(DEFAULT_EMPLOYEES);
+                        setIsDbReady(true);
+                    }
                 }
 
                 return () => { 
+                    isMounted = false;
                     if(unsubscribeEmp) unsubscribeEmp(); 
                     if(unsubscribeSal) unsubscribeSal(); 
                 };
@@ -623,7 +654,7 @@
                     </div>
                     <main className="flex-1 p-4 md:p-6 overflow-y-auto">
                         <div className="max-w-7xl mx-auto animate-fade">
-                            {activeTab === 'salary' && <ModuleSalary user={currentUser} attendances={[]} leaves={[]} salaries={salaries} employees={employees} showToast={showToast} db={db} />}
+                            {activeTab === 'salary' && <ModuleSalary user={currentUser} salaries={salaries} employees={employees} showToast={showToast} db={db} />}
                             {activeTab === 'admin' && currentUser?.code === 'ADMIN' && <ModuleAdmin employees={employees} showToast={showToast} db={db} />}
                         </div>
                     </main>
