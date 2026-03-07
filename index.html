@@ -67,15 +67,15 @@
         // ==========================================
         function BrandLogo({ size = "large" }) {
             return (
-                <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-8' : 'mb-0 shrink-0'}`}>
+                <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-6' : 'mb-0 shrink-0'}`}>
                     <img 
-                        src="./logo.png" 
+                        src="./logo.jpg" 
                         alt="MBE Logo" 
-                        style={{ height: size === 'large' ? '90px' : '36px', width: 'auto', objectFit: 'contain' }} 
-                        className={size === 'large' ? 'mb-4 shadow-xl rounded-full border-4 border-white bg-white' : 'shadow-sm rounded-full border-2 border-white bg-white'} 
+                        style={{ height: size === 'large' ? '85px' : '36px', width: 'auto', objectFit: 'contain' }} 
+                        className={size === 'large' ? 'mb-3 rounded-xl' : 'rounded-md'} 
                         onError={e => { e.target.onerror=null; e.target.src='https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=true&bold=true'; }} 
                     />
-                    {size === 'large' && <div className="text-center"><h1 className="text-2xl font-black text-slate-800 tracking-tight">MUIZ BANNER</h1><p className="text-xs font-bold text-blue-600 uppercase tracking-[0.3em] mt-1">Sistem Gaji</p></div>}
+                    {size === 'large' && <div className="text-center"><h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Muiz Banner</h1><p className="text-xs font-bold text-blue-600 uppercase tracking-[0.2em] mt-1">Sistem Gaji</p></div>}
                 </div>
             );
         }
