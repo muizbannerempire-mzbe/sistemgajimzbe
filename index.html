@@ -16,8 +16,17 @@
         .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
         .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3b82f6; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* Logo Flat - Tiada Box/Border */
-        .logo-flat { background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; outline: none !important; }
+        
+        /* Gaya Logo Flat - Tiada Box, Tiada Shadow, Tiada Border */
+        .logo-flat { 
+            background: transparent !important; 
+            border: none !important; 
+            box-shadow: none !important; 
+            border-radius: 0 !important; 
+            padding: 0 !important; 
+            outline: none !important;
+            display: block;
+        }
     </style>
 </head>
 <body class="antialiased text-slate-800">
@@ -29,6 +38,7 @@
         import { getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         
+        // Simpan ke window supaya boleh diakses oleh skrip Babel
         window.fb = { initializeApp, getFirestore, collection, doc, onSnapshot, addDoc, updateDoc, deleteDoc, setDoc, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, query, where };
     </script>
 
@@ -53,13 +63,18 @@
             { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' }
         ];
 
+        // --- IKON ---
+        const IconLogOut = ({size=18}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
+        const IconEdit = ({size=16}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+        const IconPrinter = ({size=18}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>;
+
         // --- KOMPONEN LOGO ---
         const BrandLogo = ({ size = "large" }) => (
             <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-6' : 'mb-0'}`}>
                 <img 
                     src="./logo.png" 
                     alt="Logo MBE" 
-                    style={{ height: size === 'large' ? '100px' : '32px', width: 'auto', objectFit: 'contain' }} 
+                    style={{ height: size === 'large' ? '110px' : '32px', width: 'auto', objectFit: 'contain' }} 
                     className="logo-flat" 
                     onError={e => { e.target.onerror=null; e.target.src='https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=false&bold=true'; }} 
                 />
@@ -105,7 +120,7 @@
                                 <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold text-slate-700 transition" placeholder="••••••••" required/>
                             </div>
                             <button type="submit" disabled={!isReady} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition disabled:opacity-50">
-                                {isReady ? 'Log Masuk Sistem' : 'Menyambung Database...'}
+                                {isReady ? 'Log Masuk Sistem' : 'Menghubungkan Database...'}
                             </button>
                         </form>
                     </div>
@@ -120,7 +135,7 @@
             const filtered = salaries.filter(s => s.year === year && s.month === month);
 
             return (
-                <div className="space-y-6">
+                <div className="space-y-6 animate-fade">
                     <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-col md:flex-row items-center justify-between gap-4">
                         <div className="flex gap-2">
                             <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">
@@ -149,7 +164,7 @@
                                             <p className="text-xs text-slate-400 mt-1 font-mono">{s.empCode}</p>
                                         </div>
                                         <button onClick={()=>print(s)} className="text-blue-500 p-2 hover:bg-blue-50 rounded-xl transition">
-                                            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>
+                                            <IconPrinter />
                                         </button>
                                     </div>
                                     <div className="bg-emerald-50 p-4 rounded-2xl mb-4 text-center border border-emerald-100">
@@ -167,22 +182,23 @@
             );
         }
 
-        // --- KOMPONEN TAMPILAN ADMIN ---
+        // --- KOMPONEN TAMPILAN ADMIN (DIREKTORI) ---
         function AdminView({ employees, deleteDoc, doc, db, appId, setDoc, showToast }) {
-            const [editForm, setEditForm] = useState(null);
+            const [form, setForm] = useState(null); // Tukar nama dari editForm ke form untuk betulkan ralat
+
             const save = async (e) => {
                 e.preventDefault();
                 try {
-                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', editForm.code.toUpperCase()), { ...editForm, code: editForm.code.toUpperCase(), name: editForm.name.toUpperCase(), basic: parseFloat(editForm.basic)||0 }, {merge:true});
-                    showToast("Maklumat Tersimpan!", "success"); setEditForm(null);
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', form.code.toUpperCase()), { ...form, code: form.code.toUpperCase(), name: form.name.toUpperCase(), basic: parseFloat(form.basic)||0 }, {merge:true});
+                    showToast("Maklumat Tersimpan!", "success"); setForm(null);
                 } catch(err) { showToast("Gagal menyimpan.", "error"); }
             };
 
             return (
-                <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
+                <div className="bg-white rounded-3xl shadow-sm border overflow-hidden animate-fade">
                     <div className="p-6 bg-slate-50 border-b flex justify-between items-center">
                         <h3 className="font-black text-xl text-slate-800 tracking-tight">Direktori Pekerja</h3>
-                        <button onClick={()=>setEditForm({code:'',name:'',basic:0,ic:'',dept:'',position:''})} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-600/20">Tambah Pekerja</button>
+                        <button onClick={()=>setForm({code:'',name:'',basic:0,ic:'',dept:'',position:''})} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-600/20">Tambah Pekerja</button>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm whitespace-nowrap">
@@ -197,9 +213,11 @@
                                         <td className="p-4 text-xs font-medium text-slate-600">{e.position}<br/><span className="text-blue-500">{e.dept}</span></td>
                                         <td className="p-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button onClick={()=>setEditForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold transition">Edit</button>
-                                                <button onClick={async()=> {if(window.confirm("Hapus pekerja?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', e.code))}} className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition">
-                                                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h12m-9 0v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6M8 6V4a2 2 0 012-2h0a2 2 0 012 2v2"/></svg>
+                                                <button onClick={()=>setForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                                                    <IconEdit size={14} /> Edit
+                                                </button>
+                                                <button onClick={async()=> {if(window.confirm("Hapus pekerja ini dari sistem?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', e.code))}} className="p-2 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition">
+                                                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h12m-9 0v10a2 2 0 00 2 2h4a2 2 0 00 2-2V6M8 6V4a2 2 0 012-2h0a2 2 0 012 2v2"/></svg>
                                                 </button>
                                             </div>
                                         </td>
@@ -208,16 +226,26 @@
                             </tbody>
                         </table>
                     </div>
-                    {editForm && (
+                    
+                    {form && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl animate-fade">
                                 <h2 className="font-black text-2xl mb-6 border-b pb-4">Profil Pekerja</h2>
                                 <form onSubmit={save} className="space-y-4">
-                                    <input type="text" placeholder="KOD LOGIN" value={editForm.code} onChange={e=>setEditForm({...editForm,code:e.target.value})} className="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none uppercase font-mono" required/>
-                                    <input type="text" placeholder="NAMA PENUH" value={editForm.name} onChange={e=>setEditForm({...editForm,name:e.target.value})} className="w-full p-3 border-2 rounded-xl focus:border-blue-500 outline-none uppercase" required/>
-                                    <input type="number" placeholder="GAJI POKOK (RM)" value={editForm.basic} onChange={e=>setEditForm({...editForm,basic:e.target.value})} className="w-full p-4 border-2 border-emerald-200 bg-emerald-50/20 rounded-xl text-lg font-black text-emerald-800" required/>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Kod Login (ID)</label>
+                                        <input type="text" placeholder="KOD LOGIN" value={form.code} onChange={e=>setForm({...form,code:e.target.value})} className="w-full p-3 border-2 border-slate-100 bg-slate-50 rounded-xl focus:border-blue-500 outline-none uppercase font-mono" required/>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Nama Penuh</label>
+                                        <input type="text" placeholder="NAMA PENUH" value={form.name} onChange={e=>setForm({...form,name:e.target.value.toUpperCase()})} className="w-full p-3 border-2 border-slate-100 bg-slate-50 rounded-xl focus:border-blue-500 outline-none uppercase" required/>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Gaji Asas Bulanan</label>
+                                        <input type="number" placeholder="GAJI POKOK (RM)" value={form.basic} onChange={e=>setForm({...form,basic:e.target.value})} className="w-full p-4 border-2 border-emerald-100 bg-emerald-50/20 rounded-xl text-lg font-black text-emerald-800" required/>
+                                    </div>
                                     <div className="flex gap-3 pt-6">
-                                        <button type="button" onClick={()=>setEditForm(null)} className="flex-1 bg-slate-100 py-4 rounded-xl font-bold">Batal</button>
+                                        <button type="button" onClick={()=>setForm(null)} className="flex-1 bg-slate-100 py-4 rounded-xl font-bold">Batal</button>
                                         <button type="submit" className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-600/30">Simpan Profil</button>
                                     </div>
                                 </form>
@@ -240,7 +268,7 @@
             const [toast, setToast] = useState(null);
             const [isReady, setIsReady] = useState(false);
 
-            // Inisialisasi Firebase Services
+            // Inisialisasi Firebase Services dari window.fb
             const { initializeApp, getFirestore, collection, doc, onSnapshot, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, setDoc, deleteDoc } = window.fb;
             
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -263,7 +291,7 @@
                 setTimeout(() => setToast(null), 3500);
             }, []);
 
-            // 1. Auth Logic
+            // 1. Logika Autentikasi
             useEffect(() => {
                 const init = async () => {
                     try {
@@ -277,7 +305,7 @@
                 return () => unsubscribe();
             }, [auth]);
 
-            // 2. Data Fetching
+            // 2. Logika Pengambilan Data (Mendengar Perubahan secara Langsung)
             useEffect(() => {
                 if (!fbUser) return;
                 const bPath = ['artifacts', appId, 'public', 'data'];
@@ -295,21 +323,32 @@
                 return () => { unsubEmp(); unsubSal(); };
             }, [fbUser, appId, db]);
 
-            // Jana Data
+            // Fungsi Jana Data (Wajib tekan untuk membetulkan "Pekerja Tidak Diketahui")
             const importStandardData = async (targetMonth, targetYear) => {
-                if(!window.confirm(`Jana data standard untuk ${MONTHS[parseInt(targetMonth)]} ${targetYear}?`)) return;
-                showToast(`Menjana data...`, 'info');
+                if(!window.confirm(`Jana data standard untuk bulan ${MONTHS[parseInt(targetMonth)]} ${targetYear}?`)) return;
+                showToast(`Menjana data standard...`, 'info');
                 try {
                     for (const d of DEFAULT_EMPLOYEES) {
+                        // Simpan profil pekerja ke database
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', d.code), d, {merge:true});
+                        
+                        // Simpan rekod gaji standard
                         const recordId = `sal_${d.code}_${targetYear}_${targetMonth}`;
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), { 
-                            empCode: d.code, empName: d.name, icNumber: d.ic, dept: d.dept, position: d.position, 
-                            year: targetYear, month: targetMonth, basic_salary: d.basic, kwsp: (d.basic * 0.11), 
-                            advance_payment: 0, updatedAt: new Date().toISOString() 
+                            empCode: d.code, 
+                            empName: d.name, 
+                            icNumber: d.ic, 
+                            dept: d.dept, 
+                            position: d.position, 
+                            year: targetYear, 
+                            month: targetMonth, 
+                            basic_salary: d.basic, 
+                            kwsp: (d.basic * 0.11), 
+                            advance_payment: 0, 
+                            updatedAt: new Date().toISOString() 
                         }, {merge:true});
                     }
-                    showToast(`Selesai!`, 'success');
+                    showToast(`Selesai! Semua nama telah dikemaskini.`, 'success');
                 } catch(err) { showToast('Gagal. Periksa Firebase Rules.', 'error'); }
             };
 
@@ -338,7 +377,7 @@
                         </div>
                     </div>
 
-                    <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full animate-fade">
+                    <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-7xl mx-auto w-full">
                         {activeTab === 'salary' ? (
                             <SalaryView db={db} appId={appId} salaries={salaries} employees={employees} isAdmin={currentUser.code === 'ADMIN'} importData={importStandardData} print={printSlip} deleteDoc={deleteDoc} doc={doc} />
                         ) : (
