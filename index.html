@@ -226,9 +226,8 @@
                 }
             };
 
-            // FUNGSI INI AKAN MENJANA DATA STANDARD KE DALAM BULAN & TAHUN YANG DIPILIH
             const importStandardData = async () => {
-                if(!window.confirm(`Anda pasti mahu jana data gaji standard untuk bulan ${MONTHS[parseInt(month)]} ${year}? Ia akan menggantikan rekod semasa.`)) return;
+                if(!window.confirm(`Anda pasti mahu jana senarai pekerja & data gaji standard untuk bulan ${MONTHS[parseInt(month)]} ${year}?`)) return;
                 showToast(`Menjana data gaji ${MONTHS[parseInt(month)]}...`, 'info');
                 
                 const standardData = [
@@ -246,10 +245,22 @@
                 
                 try {
                     for (const data of standardData) {
+                        // 1. DAFTARKAN TERUS KE DALAM DIREKTORI PEKERJA
+                        const empProfile = {
+                            code: data.empCode,
+                            name: data.name,
+                            ic: data.ic,
+                            dept: data.dept,
+                            position: data.position,
+                            basic: data.basic_salary
+                        };
+                        await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', data.empCode), empProfile, {merge:true});
+
+                        // 2. MASUKKAN REKOD GAJI
                         const recordId = `sal_${data.empCode}_${year}_${month}`;
                         const finalData = {
                             empCode: data.empCode,
-                            empName: data.name, 
+                            empName: data.name,
                             icNumber: data.ic,
                             dept: data.dept,
                             position: data.position,
@@ -267,7 +278,7 @@
                     }
                     showToast(`Data gaji ${MONTHS[parseInt(month)]} ${year} berjaya dijana!`, 'success');
                 } catch(err) {
-                    console.warn("Gagal import:", err.message);
+                    console.warn(err);
                     showToast('Gagal memuat naik. Periksa Firebase Rules.', 'error');
                 }
             };
@@ -303,6 +314,7 @@
                             <div className="flex flex-wrap gap-2 w-full md:w-auto">
                                 <button onClick={()=>setShowReport(true)} className="flex-1 md:flex-none px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition flex items-center justify-center gap-2"><IconChartBar size={16}/> Laporan</button>
                                 <button onClick={importStandardData} className="flex-1 md:flex-none px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition whitespace-nowrap">📥 Jana Data Standard</button>
+                                <button onClick={importPukal} className="flex-1 md:flex-none px-4 py-2 bg-amber-50 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition whitespace-nowrap">📥 Templat Kosong</button>
                                 <button onClick={openAdd} className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition flex items-center justify-center gap-1">➕ Tambah Manual</button>
                             </div>
                         )}
@@ -490,7 +502,7 @@
                                             <td className="p-4 text-emerald-600 font-black">RM {e?.basic || 0}</td>
                                             <td className="p-4">
                                                 <div className="flex gap-2 justify-end">
-                                                    <button onClick={()=>setEmpForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition flex items-center gap-1"><IconEdit size={14}/> Edit Nama</button>
+                                                    <button onClick={()=>setEmpForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition flex items-center gap-1"><IconEdit size={14}/> Edit Profil</button>
                                                     {(e?.code || '') !== 'ADMIN' && <button onClick={()=>deleteEmp(e.code)} className="p-1.5 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition"><IconTrash size={16}/></button>}
                                                 </div>
                                             </td>
@@ -504,7 +516,7 @@
                     {empForm && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-3xl w-full max-w-xl p-8 shadow-2xl animate-fade">
-                                <h2 className="font-black text-2xl mb-6 border-b pb-4 text-slate-800">{empForm.code ? 'Kemaskini Profil & Nama' : 'Daftar Pekerja Baru'}</h2>
+                                <h2 className="font-black text-2xl mb-6 border-b pb-4 text-slate-800">{empForm.code && employees.some(e=>e.code===empForm.code) ? 'Kemaskini Profil Pekerja' : 'Daftar Pekerja Baru'}</h2>
                                 <form onSubmit={saveEmp} className="space-y-5">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                         <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kod Login (Unik)</label><input type="text" disabled={empForm.code !== '' && employees.some(e=>(e?.code || '')===empForm.code)} value={empForm.code} onChange={e=>setEmpForm({...empForm,code:e.target.value.toUpperCase()})} className="w-full p-3 border-2 border-slate-200 rounded-xl uppercase bg-slate-50 font-mono focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: MZBE012025" required/></div>
