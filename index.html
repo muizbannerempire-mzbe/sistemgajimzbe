@@ -16,6 +16,8 @@
         .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
         .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3b82f6; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Memastikan imej logo tidak mempunyai latar belakang atau kotak */
+        .logo-flat { background: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0 !important; }
     </style>
 </head>
 <body class="antialiased text-slate-800">
@@ -54,8 +56,6 @@
 
         // --- IKON ---
         const IconLogOut = ({size=18}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
-        const IconCheck = ({size=24}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
-        const IconAlert = ({size=24}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>;
         const IconEdit = ({size=16}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
         const IconPrinter = ({size=18}) => <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>;
 
@@ -68,9 +68,9 @@
                     <img 
                         src="./logo.jpg" 
                         alt="MBE Logo" 
-                        style={{ height: size === 'large' ? '90px' : '32px', width: 'auto', objectFit: 'contain' }} 
-                        className={size === 'large' ? 'mb-3' : ''} 
-                        onError={e => { e.target.onerror=null; e.target.src='https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=true&bold=true'; }} 
+                        style={{ height: size === 'large' ? '100px' : '36px', width: 'auto', objectFit: 'contain' }} 
+                        className="logo-flat" 
+                        onError={e => { e.target.onerror=null; e.target.src='https://ui-avatars.com/api/?name=MBE&background=1e293b&color=ffffff&rounded=false&bold=true'; }} 
                     />
                     {size === 'large' && <div className="text-center"><h1 className="text-2xl font-black text-slate-800 tracking-tight uppercase">Muiz Banner</h1><p className="text-xs font-bold text-blue-600 uppercase tracking-[0.2em] mt-1">Sistem Gaji</p></div>}
                 </div>
@@ -97,7 +97,7 @@
 
             return (
                 <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-xl border border-slate-100 animate-fade">
+                    <div className="bg-white rounded-3xl p-10 w-full max-w-md shadow-xl border border-slate-100 animate-fade">
                         <BrandLogo size="large" />
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div>
@@ -110,7 +110,7 @@
                             </div>
                             <button type="submit" disabled={!isReady} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition disabled:opacity-50 flex justify-center items-center gap-2">
                                 {!isReady && <div className="loader border-white border-t-blue-600 w-5 h-5"></div>}
-                                {isReady ? 'Log Masuk Sistem' : 'Memuat Data...'}
+                                {isReady ? 'Log Masuk Sistem' : 'Memuatkan Data...'}
                             </button>
                         </form>
                     </div>
@@ -119,7 +119,7 @@
         }
 
         // ==========================================
-        // MODULES (Salary & Admin)
+        // SUB-COMPONENTS
         // ==========================================
         function ModuleSalary({ user, salaries, employees, showToast, db, appId }) {
             const { doc, setDoc, deleteDoc } = window.fbModules;
@@ -130,36 +130,26 @@
             const filteredSalaries = salaries.filter(s => (s?.year || '') === year && (s?.month || '') === month && (isAdmin || s?.empCode === user.code));
 
             const importStandardData = async () => {
-                if(!window.confirm(`Anda pasti mahu jana senarai pekerja & data gaji standard untuk bulan ${MONTHS[parseInt(month)]} ${year}?`)) return;
-                showToast(`Menjana data...`, 'info');
-                
-                const standardData = [
-                    { empCode: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '040421110053', advance_payment: 700, kwsp: 198, basic_salary: 1800 },
-                    { empCode: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', ic: '980416036979', advance_payment: 800, kwsp: 231, basic_salary: 2100 },
-                    { empCode: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', ic: '000917110384', advance_payment: 800, kwsp: 220, basic_salary: 2000 },
-                    { empCode: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', ic: '971017385034', advance_payment: 1000, kwsp: 253, basic_salary: 2300 },
-                    { empCode: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '', advance_payment: 0, kwsp: 198, basic_salary: 1800 },
-                    { empCode: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', ic: '000417080975', advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, basic_salary: 2300 },
-                    { empCode: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '070909030855', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
-                    { empCode: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '010815110403', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
-                    { empCode: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', ic: '930905115074', advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, basic_salary: 1700 },
-                    { empCode: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', ic: '990331037699', advance_payment: 0, kwsp: 352, basic_salary: 3500 }
-                ];
-                
+                if(!window.confirm(`Guna data standard untuk ${MONTHS[parseInt(month)]} ${year}?`)) return;
+                showToast(`Menjana data standard...`, 'info');
                 try {
-                    for (const d of standardData) {
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', d.empCode), { code: d.empCode, name: d.name, ic: d.ic, dept: d.dept, position: d.position, basic: d.basic_salary }, {merge:true});
-                        const recordId = `sal_${d.empCode}_${year}_${month}`;
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), { empCode: d.empCode, empName: d.name, icNumber: d.ic, dept: d.dept, position: d.position, year, month, basic_salary: d.basic_salary, kwsp: d.kwsp, advance_payment: d.advance_payment, unpaid_leave_days: d.unpaid_leave_days||0, unpaid_leave_deduction: d.unpaid_leave_deduction||0, allowance:0, ot_hours:0, ot_rate:10, bonus:0, socso:0, eis:0, other_deductions:0, late_deduction:0, updatedAt: new Date().toISOString() }, {merge:true});
+                    for (const d of DEFAULT_EMPLOYEES) {
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', d.code), d, {merge:true});
+                        const recordId = `sal_${d.code}_${year}_${month}`;
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), { 
+                            empCode: d.code, empName: d.name, icNumber: d.ic, dept: d.dept, position: d.position, 
+                            year, month, basic_salary: d.basic, kwsp: (d.basic * 0.11), advance_payment: 0, 
+                            unpaid_leave_days: 0, unpaid_leave_deduction: 0, updatedAt: new Date().toISOString() 
+                        }, {merge:true});
                     }
-                    showToast(`Selesai menjana data.`, 'success');
-                } catch(err) { showToast('Ralat. Periksa Firebase Rules.', 'error'); }
+                    showToast(`Data standard dijana!`, 'success');
+                } catch(err) { showToast('Ralat Firebase. Sila periksa tab Rules.', 'error'); }
             };
 
             const printSlip = (sal) => {
-                const gross = (sal?.basic_salary || 0) + (sal?.allowance || 0) + ((sal?.ot_hours || 0)*(sal?.ot_rate || 0)) + (sal?.bonus || 0);
-                const deduct = (sal?.kwsp || 0) + (sal?.socso || 0) + (sal?.eis || 0) + (sal?.other_deductions || 0) + (sal?.unpaid_leave_deduction || 0) + (sal?.late_deduction || 0) + (sal?.advance_payment || 0);
-                const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small>Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><div style="background:#f9f9f9;padding:15px;border-radius:8px;margin-bottom:20px"><p style="margin:0;text-transform:uppercase"><b>Nama:</b> ${sal.empName}<br><b>IC:</b> ${sal.icNumber||'-'}<br><b>Jabatan:</b> ${sal.dept||'-'}</p></div><div style="display:flex;gap:20px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${(sal.basic_salary || 0).toFixed(2)}</span></div><div class="row"><span>OT</span><span>RM ${((sal.ot_hours || 0)*(sal.ot_rate || 0)).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/Potongan</span><span>RM ${deduct.toFixed(2)}</span></div><br><div class="row"><b>Gaji Bersih</b><b>RM ${(gross-deduct).toFixed(2)}</b></div></div></div></body></html>`;
+                const gross = (sal?.basic_salary || 0) + (sal?.allowance || 0);
+                const deduct = (sal?.kwsp || 0) + (sal?.advance_payment || 0);
+                const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0} .header{text-align:center;margin-bottom:30px}</style></head><body><div class="header"><h2>MUIZ BANNER EMPIRE</h2><p>Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</p></div><div style="background:#f4f4f4;padding:15px;border-radius:5px;margin-bottom:20px"><p><b>Nama:</b> ${sal.empName}<br><b>Jawatan:</b> ${sal.position||'-'}</p></div><div class="row"><span>Gaji Asas</span><span>RM ${sal.basic_salary.toFixed(2)}</span></div><div class="row"><span>KWSP (11%)</span><span>-RM ${sal.kwsp.toFixed(2)}</span></div><br><h3 style="text-align:right">BERSIH: RM ${(gross-deduct).toFixed(2)}</h3></body></html>`;
                 const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
             };
 
@@ -170,10 +160,10 @@
                             <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">{[2024,2025,2026,2027,2028,2029,2030].map(y=><option key={y}>{y}</option>)}</select>
                             <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg font-bold bg-slate-50">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
                         </div>
-                        {isAdmin && <button onClick={importStandardData} className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">📥 Jana Data Standard</button>}
+                        {isAdmin && <button onClick={importStandardData} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">📥 Jana Data Standard</button>}
                     </div>
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredSalaries.length === 0 ? <div className="col-span-full text-center py-12 text-slate-400">Tiada rekod untuk bulan ini.</div> : 
+                        {filteredSalaries.length === 0 ? <div className="col-span-full text-center py-12 text-slate-400 border border-dashed rounded-3xl">Tiada rekod untuk bulan ini. Sila tekan "Jana Data Standard".</div> : 
                         filteredSalaries.map(s => (
                             <div key={s.id} className="bg-white p-5 rounded-3xl shadow-sm border relative animate-fade">
                                 <div className="flex justify-between items-start mb-4">
@@ -182,9 +172,9 @@
                                 </div>
                                 <div className="bg-emerald-50 p-4 rounded-2xl mb-4 text-center border border-emerald-100">
                                     <p className="text-[10px] text-emerald-600 font-bold uppercase">Gaji Bersih</p>
-                                    <p className="text-2xl font-black text-emerald-700">RM {((s?.basic_salary||0)+(s?.allowance||0)+(s?.bonus||0)+((s?.ot_hours||0)*(s?.ot_rate||0)) - ((s?.kwsp||0)+(s?.socso||0)+(s?.eis||0)+(s?.other_deductions||0)+(s?.unpaid_leave_deduction||0)+(s?.advance_payment||0)+(s?.late_deduction||0))).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
+                                    <p className="text-2xl font-black text-emerald-700">RM {((s?.basic_salary||0) - ((s?.kwsp||0)+(s?.advance_payment||0)+(s?.unpaid_leave_deduction||0))).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p>
                                 </div>
-                                {isAdmin && <div className="grid grid-cols-2 gap-2 mt-4"><button className="py-2 bg-slate-100 rounded-xl text-xs font-bold">Edit</button><button onClick={async()=>{ if(window.confirm("Padam?")) await deleteDoc(doc(db,'artifacts',appId,'public', 'data', 'salaries', s.id))}} className="py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold">Padam</button></div>}
+                                {isAdmin && <div className="grid grid-cols-2 gap-2 mt-4"><button className="py-2 bg-slate-100 rounded-xl text-xs font-bold">Edit</button><button onClick={async()=>{ if(window.confirm("Padam?")) await deleteDoc(doc(db,'artifacts',appId,'public','data','salaries',s.id))}} className="py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold">Padam</button></div>}
                             </div>
                         ))}
                     </div>
@@ -193,20 +183,20 @@
         }
 
         function ModuleAdmin({ employees, showToast, db, appId }) {
-            const { doc, setDoc } = window.fbModules;
+            const { doc, setDoc, deleteDoc } = window.fbModules;
             const [form, setForm] = useState(null);
             const save = async (e) => {
                 e.preventDefault();
                 try {
                     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', form.code.toUpperCase()), { ...form, code: form.code.toUpperCase(), name: form.name.toUpperCase(), basic: parseFloat(form.basic)||0 }, {merge:true});
-                    showToast("Tersimpan!", "success"); setForm(null);
+                    showToast("Pekerja Disimpan!", "success"); setForm(null);
                 } catch(err) { showToast("Gagal simpan.", "error"); }
             };
             return (
                 <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                    <div className="p-6 bg-slate-50 border-b flex justify-between items-center"><h3 className="font-black text-xl text-slate-800">Direktori Pekerja</h3><button onClick={()=>setForm({code:'',name:'',dept:'',position:'',basic:0,ic:''})} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold shadow-md">➕ Tambah</button></div>
-                    <div className="overflow-x-auto"><table className="w-full text-left text-sm whitespace-nowrap"><thead className="bg-white text-xs text-slate-400 font-bold uppercase border-b-2"><tr><th className="p-4">Kod</th><th className="p-4">Nama</th><th className="p-4">Gaji Asas</th><th className="p-4 text-right">Tindakan</th></tr></thead><tbody className="divide-y divide-slate-100">{employees.map(e=>(<tr key={e.code} className="hover:bg-slate-50 transition"><td className="p-4 font-mono font-bold text-slate-500">{e.code}</td><td className="p-4 font-bold text-slate-800 uppercase">{e.name}</td><td className="p-4 font-bold text-emerald-600">RM {e.basic}</td><td className="p-4 text-right flex gap-2 justify-end"><button onClick={()=>setForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center gap-1"><IconEdit size={14}/> Edit Profil</button></td></tr>))}</tbody></table></div>
-                    {form && <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-3xl w-full max-w-xl p-8 shadow-2xl animate-fade"><h2 className="font-black text-2xl mb-6 border-b pb-4">{form.code ? 'Edit Profil' : 'Daftar Pekerja'}</h2><form onSubmit={save} className="space-y-4"><input type="text" placeholder="KOD LOGIN" value={form.code} onChange={e=>setForm({...form,code:e.target.value})} className="w-full p-3 border-2 rounded-xl uppercase font-mono" required/><input type="text" placeholder="NAMA PENUH" value={form.name} onChange={e=>setForm({...form,name:e.target.value.toUpperCase()})} className="w-full p-3 border-2 rounded-xl uppercase" required/><input type="text" placeholder="NO IC" value={form.ic} onChange={e=>setForm({...form,ic:e.target.value})} className="w-full p-3 border-2 rounded-xl"/><div className="grid grid-cols-2 gap-4"><input type="text" placeholder="JABATAN" value={form.dept} onChange={e=>setForm({...form,dept:e.target.value})} className="p-3 border-2 rounded-xl"/><input type="text" placeholder="JAWATAN" value={form.position} onChange={e=>setForm({...form,position:e.target.value})} className="p-3 border-2 rounded-xl"/></div><input type="number" placeholder="GAJI ASAS" value={form.basic} onChange={e=>setForm({...form,basic:e.target.value})} className="w-full p-4 border-2 border-emerald-200 bg-emerald-50/20 rounded-xl text-lg font-black text-emerald-800" required/><div className="flex gap-3 pt-6"><button type="button" onClick={()=>setForm(null)} className="flex-1 bg-slate-100 py-4 rounded-xl font-bold">Batal</button><button type="submit" className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">Simpan</button></div></form></div></div>}
+                    <div className="p-6 bg-slate-50 border-b flex justify-between items-center"><h3 className="font-black text-xl text-slate-800">Direktori Pekerja</h3><button onClick={()=>setForm({code:'',name:'',dept:'',position:'',basic:0,ic:''})} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold">➕ Tambah Baru</button></div>
+                    <div className="overflow-x-auto"><table className="w-full text-left text-sm whitespace-nowrap"><thead className="bg-white text-xs text-slate-400 font-bold uppercase border-b-2"><tr><th className="p-4">Kod</th><th className="p-4">Nama</th><th className="p-4 text-right">Tindakan</th></tr></thead><tbody className="divide-y divide-slate-100">{employees.map(e=>(<tr key={e.code} className="hover:bg-slate-50 transition"><td className="p-4 font-mono font-bold text-slate-500">{e.code}</td><td className="p-4 font-bold text-slate-800 uppercase">{e.name}</td><td className="p-4 text-right flex gap-2 justify-end"><button onClick={()=>setForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold flex items-center gap-1"><IconEdit size={14}/> Edit Profil</button><button onClick={async()=> {if(window.confirm("Padam?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', e.code))}} className="p-1.5 bg-rose-50 text-rose-500 rounded-lg hover:bg-rose-500 hover:text-white transition"><svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h12m-9 0v10a2 2 0 002 2h4a2 2 0 002-2V6M8 6V4a2 2 0 012-2h0a2 2 0 012 2v2"/></svg></button></td></tr>))}</tbody></table></div>
+                    {form && <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"><div className="bg-white rounded-3xl w-full max-w-xl p-8 shadow-2xl animate-fade"><h2 className="font-black text-2xl mb-6 border-b pb-4">{form.code && employees.some(x=>x.code===form.code) ? 'Edit Profil' : 'Daftar Pekerja'}</h2><form onSubmit={save} className="space-y-4"><input type="text" placeholder="KOD LOGIN" value={form.code} onChange={e=>setForm({...form,code:e.target.value})} className="w-full p-3 border-2 rounded-xl uppercase font-mono" required/><input type="text" placeholder="NAMA PENUH" value={form.name} onChange={e=>setForm({...form,name:e.target.value.toUpperCase()})} className="w-full p-3 border-2 rounded-xl uppercase" required/><input type="number" placeholder="GAJI ASAS" value={form.basic} onChange={e=>setForm({...form,basic:e.target.value})} className="w-full p-4 border-2 border-emerald-200 bg-emerald-50/20 rounded-xl text-lg font-black text-emerald-800" required/><div className="flex gap-3 pt-6"><button type="button" onClick={()=>setForm(null)} className="flex-1 bg-slate-100 py-4 rounded-xl font-bold">Batal</button><button type="submit" className="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg">Simpan Profil</button></div></form></div></div>}
                 </div>
             );
         }
@@ -215,6 +205,7 @@
         // MAIN APP
         // ==========================================
         function MainApp() {
+            const { initializeApp, getFirestore, collection, doc, onSnapshot, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, setDoc } = window.fbModules;
             const [user, setUser] = useState(null);
             const [currentUser, setCurrentUser] = useState(null);
             const [activeTab, setActiveTab] = useState('salary');
@@ -222,8 +213,6 @@
             const [salaries, setSalaries] = useState([]);
             const [toast, setToast] = useState(null);
             const [isReady, setIsReady] = useState(false);
-
-            const { initializeApp, getFirestore, collection, doc, onSnapshot, getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, setDoc } = window.fbModules;
 
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
                 apiKey: "AIzaSyAd_sBPBJ4Zru0gbX8dCD9FxJ4Qc0Dt7-Q",
@@ -245,36 +234,33 @@
             }, []);
 
             useEffect(() => {
-                const init = async () => {
+                const initAuth = async () => {
                     try {
                         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                             await signInWithCustomToken(auth, __initial_auth_token);
                         } else { await signInAnonymously(auth); }
-                    } catch (e) { console.warn(e.message); }
+                    } catch (e) { console.warn("Auth Fail:", e.message); }
                 };
-                init();
+                initAuth();
                 const unsubscribe = onAuthStateChanged(auth, setUser);
                 return () => unsubscribe();
-            }, [auth, signInAnonymously, signInWithCustomToken]);
+            }, [auth]);
 
             useEffect(() => {
                 if (!user) return;
                 const bPath = ['artifacts', appId, 'public', 'data'];
                 const unsubEmp = onSnapshot(collection(db, ...bPath, 'employees'), snap => {
                     const emps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    if (emps.length === 0) {
-                        DEFAULT_EMPLOYEES.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e).catch(err => {}));
-                        setEmployees(DEFAULT_EMPLOYEES);
-                    } else { setEmployees(emps); }
+                    setEmployees(emps);
                     setIsReady(true);
-                }, err => console.warn(err.message));
+                }, err => console.warn("DB Restricted (Emp):", err.message));
 
                 const unsubSal = onSnapshot(collection(db, ...bPath, 'salaries'), snap => {
                     setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-                }, err => console.warn(err.message));
+                }, err => console.warn("DB Restricted (Sal):", err.message));
 
                 return () => { unsubEmp(); unsubSal(); };
-            }, [user, db, appId, setDoc, doc]);
+            }, [user, db, appId]);
 
             if (!currentUser) return <LoginScreen employees={employees} onLogin={setCurrentUser} isReady={isReady} showToast={showToast} />;
 
@@ -282,10 +268,10 @@
                 <div className="min-h-screen flex flex-col bg-slate-100">
                     <header className="bg-slate-900 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-30">
                         <div className="flex items-center gap-4"><BrandLogo size="small" /><div><h1 className="font-bold tracking-tight">Sistem Gaji MBE</h1><p className="text-[10px] text-blue-300 font-bold uppercase tracking-widest">{currentUser.name}</p></div></div>
-                        <button onClick={() => setCurrentUser(null)} className="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition"><IconLogOut size={16}/> Keluar</button>
+                        <button onClick={() => setCurrentUser(null)} className="bg-rose-500/20 text-rose-400 hover:bg-rose-500 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition"><IconLogOut size={16}/> Keluar</button>
                     </header>
-                    <div className="bg-white border-b shadow-sm sticky top-[64px] z-20 overflow-x-auto">
-                        <div className="max-w-7xl mx-auto px-4 flex gap-6 whitespace-nowrap">
+                    <div className="bg-white border-b shadow-sm sticky top-[64px] z-20">
+                        <div className="max-w-7xl mx-auto px-4 flex gap-6">
                             <button onClick={()=>setActiveTab('salary')} className={`px-4 py-4 font-bold text-sm border-b-2 transition-colors ${activeTab==='salary'?'border-blue-600 text-blue-700':'border-transparent text-slate-500'}`}>💰 Urusan Gaji</button>
                             {currentUser.code === 'ADMIN' && <button onClick={()=>setActiveTab('admin')} className={`px-4 py-4 font-bold text-sm border-b-2 transition-colors ${activeTab==='admin'?'border-blue-600 text-blue-700':'border-transparent text-slate-500'}`}>👨‍💼 Direktori Pekerja</button>}
                         </div>
