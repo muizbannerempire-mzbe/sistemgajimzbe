@@ -1,856 +1,1055 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc, setDoc } from 'firebase/firestore';
-
-// Inisialisasi Firebase
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-let app, db, auth;
-try {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    auth = getAuth(app);
-} catch(e) {
-    console.error("Firebase init failed:", e);
-}
-
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-// --- TETAPAN GPS KEDAI ---
-const SHOP_LAT = 5.76973; 
-const SHOP_LNG = 102.56143; 
-const ALLOWED_RADIUS = 150; 
-
-function getDistanceInMeters(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; 
-    const p1 = lat1 * Math.PI/180; 
-    const p2 = lat2 * Math.PI/180; 
-    const dp = (lat2-lat1) * Math.PI/180; 
-    const dl = (lon2-lon1) * Math.PI/180;
-    const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-const getTodayString = () => { 
-    const d = new Date(); 
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; 
-};
-
-const formatTimeDisplay = (iso) => {
-    if(!iso) return '--:--'; 
-    const d = new Date(iso);
-    let h = d.getHours(); 
-    let m = d.getMinutes(); 
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12; 
-    m = String(m).padStart(2, '0'); 
-    return `${h}:${m} ${ampm}`;
-};
-
-const MONTHS = ['', 'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
-
-// --- IKON TERBINA DALAM ---
-const IconLogOut = ({size=18, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>;
-const IconClock = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-const IconAlert = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>;
-const IconCheck = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
-const IconMapPin = ({size=24, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>;
-const IconTrash = ({size=16, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
-const IconSettings = ({size=20, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
-const IconChartBar = ({size=20, className=""}) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>;
-
-function BrandLogo({ size = "large" }) {
-    return (
-        <div className={`flex flex-col items-center justify-center ${size === 'large' ? 'mb-8' : 'mb-0 shrink-0'}`}>
-            <img src="./logo.png" alt="MBE" style={{ height: size === 'large' ? '100px' : '36px', width: 'auto', objectFit: 'contain' }} className={size === 'large' ? 'mb-3' : 'bg-white rounded p-1'} onError={e => { e.target.style.display='none'; }} />
-            {size === 'large' && <div className="text-center"><h1 className="text-2xl font-black text-slate-800">MUIZ BANNER</h1><p className="text-sm font-bold text-slate-500 uppercase tracking-widest">Empire</p></div>}
-        </div>
-    );
-}
-
-function TabBtn({ label, icon, active, onClick }) {
-    return (
-        <button onClick={onClick} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${active ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500 hover:text-slate-800'}`}>
-            <span>{icon}</span> {label}
-        </button>
-    );
-}
-
-// ==========================================
-// APP COMPONENT
-// ==========================================
-export default function App() {
-    const [firebaseUser, setFirebaseUser] = useState(null);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [activeTab, setActiveTab] = useState('attendance');
-    const [isDbReady, setIsDbReady] = useState(false);
-    const [authError, setAuthError] = useState(null);
-    
-    // DB States
-    const [employees, setEmployees] = useState([]);
-    const [attendances, setAttendances] = useState([]);
-    const [leaves, setLeaves] = useState([]);
-    const [salaries, setSalaries] = useState([]);
-    const [settings, setSettings] = useState({ clockOutTime: '17:00', bypassGps: false });
-    
-    const [toast, setToast] = useState(null);
-
-    const showToast = useCallback((msg, type = 'info') => {
-        setToast({ msg, type });
-        setTimeout(() => setToast(null), 3500);
-    }, []);
-
-    // 1. Initial Auth
-    useEffect(() => {
-        const initAuth = async () => {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (err) {
-                console.error("Auth error:", err);
-                setAuthError(err.message);
-            }
-        };
-        initAuth();
-
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setFirebaseUser(user);
-        });
-        return () => unsubscribe();
-    }, []);
-
-    // 2. Fetch Data
-    useEffect(() => {
-        if (!firebaseUser) return;
-        
-        const bPath = ['artifacts', appId, 'public', 'data'];
-        
-        const unsubEmp = onSnapshot(collection(db, ...bPath, 'employees'), snap => {
-            const emps = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            if(emps.length === 0) {
-                const defaultEmps = [
-                    { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '040421110053' },
-                    { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', basic: 2100, ic: '980416036979' },
-                    { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', basic: 2000, ic: '000917110384' },
-                    { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', basic: 2300, ic: '971017385034' },
-                    { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '' },
-                    { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', basic: 2300, ic: '000417080975' },
-                    { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '070909030855' },
-                    { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '010815110403' },
-                    { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', basic: 1700, ic: '930905115074' },
-                    { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' },
-                    { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
-                ];
-                defaultEmps.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e));
-            } else { 
-                setEmployees(emps); 
-                setIsDbReady(true); 
-            }
-        });
-
-        const unsubAtt = onSnapshot(collection(db, ...bPath, 'attendance'), snap => setAttendances(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-        const unsubLvs = onSnapshot(collection(db, ...bPath, 'leaves'), snap => setLeaves(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-        const unsubSal = onSnapshot(collection(db, ...bPath, 'salaries'), snap => setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-        const unsubSet = onSnapshot(doc(db, ...bPath, 'settings', 'config'), docSnap => { if(docSnap.exists()) setSettings(docSnap.data()); });
-
-        return () => { unsubEmp(); unsubAtt(); unsubLvs(); unsubSal(); unsubSet(); };
-    }, [firebaseUser]);
-
-    if (authError) return <div className="p-8 text-center text-red-600 font-bold">Ralat Pangkalan Data: {authError}</div>;
-
-    if (!currentUser) {
-        return <LoginScreen employees={employees} onLogin={setCurrentUser} isReady={isDbReady} showToast={showToast} />;
+<!doctype html>
+<html lang="ms" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SISTEM GAJI - MUIZ BANNER EMPIRE</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; text-transform: uppercase; }
+    .gradient-bg { background: linear-gradient(135deg, #1e3a5f 0%, #0d1f33 100%); }
+    .card-shadow { box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+    .glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade { animation: fadeIn 0.3s ease-out; }
+    @media print {
+      body * { visibility: hidden; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area { position: absolute; left: 0; top: 0; width: 100%; }
     }
-
-    return (
-        <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
-            <header className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-4 shadow-lg z-20">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <BrandLogo size="small" />
-                        <div>
-                            <h1 className="font-bold leading-tight">HRMS Pintar MBE</h1>
-                            <p className="text-[10px] text-slate-300">{currentUser.name}</p>
-                        </div>
-                    </div>
-                    <button onClick={() => setCurrentUser(null)} className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 px-3 py-1.5 rounded-lg text-sm font-bold transition">
-                        <IconLogOut /> Keluar
-                    </button>
-                </div>
-            </header>
-
-            <div className="bg-white border-b shadow-sm z-10 overflow-x-auto">
-                <div className="max-w-7xl mx-auto px-4 flex gap-2">
-                    <button onClick={() => setActiveTab('attendance')} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab==='attendance' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>⏱️ Kehadiran</button>
-                    <button onClick={() => setActiveTab('leaves')} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab==='leaves' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>🏖️ Cuti</button>
-                    {currentUser?.code === 'ADMIN' && <button onClick={() => setActiveTab('salary')} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab==='salary' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>💰 Gaji & Laporan</button>}
-                    {currentUser?.code === 'ADMIN' && <button onClick={() => setActiveTab('admin')} className={`whitespace-nowrap px-4 py-3 font-bold text-sm border-b-2 transition-colors ${activeTab==='admin' ? 'border-blue-600 text-blue-700' : 'border-transparent text-slate-500'}`}>⚙️ Tetapan Admin</button>}
-                </div>
-            </div>
-
-            <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-                <div className="max-w-7xl mx-auto">
-                    {activeTab === 'attendance' && <ModuleAttendance user={currentUser} employees={employees} attendances={attendances} leaves={leaves} settings={settings} showToast={showToast} />}
-                    {activeTab === 'leaves' && <ModuleLeaves user={currentUser} leaves={leaves} employees={employees} showToast={showToast} />}
-                    {activeTab === 'salary' && currentUser?.code === 'ADMIN' && <ModuleSalary attendances={attendances} leaves={leaves} salaries={salaries} employees={employees} showToast={showToast} />}
-                    {activeTab === 'admin' && currentUser?.code === 'ADMIN' && <ModuleAdmin employees={employees} settings={settings} showToast={showToast} />}
-                </div>
-            </main>
-
-            {toast && (
-                <div className={`fixed bottom-6 right-6 px-6 py-3 rounded-xl shadow-2xl font-bold text-white z-50 flex items-center gap-2 ${toast.type === 'success' ? 'bg-emerald-500' : 'bg-rose-500'}`}>
-                    {toast.type === 'success' ? <IconCheck/> : <IconAlert/>} {toast.msg}
-                </div>
-            )}
+    body { box-sizing: border-box; }
+    input[type="password"] { text-transform: none; } /* KECUALIKAN PASSWORD DARI UPPERCASE */
+    
+    /* Loading Spinner */
+    .loader {
+      border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #f59e0b;
+      width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="h-full bg-slate-100 uppercase">
+  <div id="app" class="h-full overflow-auto">
+    
+    <!-- Login Screen -->
+    <div id="login-screen" class="min-h-full flex items-center justify-center p-4 gradient-bg">
+      <div class="glass rounded-2xl card-shadow p-8 w-full max-w-md animate-fade">
+        <div class="text-center mb-8">
+          <!-- Ruangan Logo Ganti Ikon SVG -->
+          <img src="logo.png" alt="MUIZ BANNER EMPIRE LOGO" class="mx-auto h-24 w-auto object-contain mb-4 drop-shadow-md" onerror="this.src='https://placehold.co/400x150/ffffff/1e3a5f?text=MUIZ+BANNER+EMPIRE'">
+          <h1 class="text-xl font-bold text-slate-800 mt-2">MUIZ BANNER EMPIRE</h1>
+          <p class="text-slate-500 text-sm mt-1 font-semibold tracking-wider">SISTEM PENGURUSAN GAJI (CLOUD)</p>
         </div>
-    );
-}
+        <div id="login-form">
+          <div class="mb-4">
+            <label class="block text-sm font-semibold text-slate-700 mb-2">KOD PEKERJA / USERNAME</label>
+            <input type="text" id="login-username" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:outline-none transition" placeholder="MASUKKAN KOD PEKERJA">
+          </div>
+          <div class="mb-6">
+            <label class="block text-sm font-semibold text-slate-700 mb-2">KATA LALUAN</label>
+            <input type="password" id="login-password" class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-amber-500 focus:outline-none transition normal-case" placeholder="MASUKKAN KATA LALUAN">
+          </div>
+          <button onclick="handleLogin()" id="btn-login" class="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-amber-700 transition shadow-lg flex justify-center items-center gap-2"> 
+            LOG MASUK 
+          </button>
+          <p id="login-error" class="text-red-500 text-sm text-center mt-4 hidden"></p>
+        </div>
+      </div>
+    </div>
 
-// ==========================================
-// SCREEN: LOGIN
-// ==========================================
-function LoginScreen({ employees, onLogin, isReady, showToast }) {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    <!-- Main Dashboard -->
+    <div id="dashboard" class="hidden min-h-full flex flex-col">
+      <!-- Header -->
+      <header class="gradient-bg text-white px-6 py-4 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <!-- Ikon Logo Kecil di Papan Pemuka -->
+            <div class="bg-white/95 p-1.5 rounded-lg shadow-inner flex items-center justify-center">
+                <img src="logo.png" alt="Logo" class="h-10 w-auto object-contain" onerror="this.style.display='none'">
+            </div>
+            <div>
+              <h1 class="font-bold text-lg flex items-center gap-2">MUIZ BANNER EMPIRE <span id="cloud-status" class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" title="BERSAMBUNG KE AWAN"></span></h1>
+              <p class="text-xs text-slate-300 tracking-wide">SISTEM PENGURUSAN GAJI</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="text-right">
+              <p class="text-sm font-bold text-amber-300 drop-shadow-sm" id="user-display"></p>
+              <p class="text-xs text-slate-300" id="role-display"></p>
+            </div>
+            <button id="btn-update-ic" onclick="openICModal()" class="hidden px-3 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs font-semibold tracking-wider transition"> 📝 KEMASKINI NO. KP </button>
+            <button onclick="handleLogout()" class="px-4 py-2.5 bg-red-500/90 hover:bg-red-600 rounded-lg text-xs font-bold tracking-wider transition shadow-md"> LOG KELUAR </button>
+          </div>
+        </div>
+      </header>
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        const cleanUser = username.trim().toUpperCase();
-        
-        if(cleanUser === 'ADMIN' && password === 'admin123') {
-            onLogin({ code: 'ADMIN', name: 'Administrator' }); return;
-        }
-        
-        const emp = employees.find(e => (e?.code || '') === cleanUser);
-        if(emp && password === emp.code) {
-            onLogin(emp);
+      <!-- Filters -->
+      <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+          <div class="flex flex-wrap items-center gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-1">TAHUN</label>
+              <select id="filter-year" onchange="applyFilters()" class="px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none bg-slate-50">
+                <option value="">SEMUA TAHUN</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 mb-1">BULAN</label>
+              <select id="filter-month" onchange="applyFilters()" class="px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none bg-slate-50">
+                <option value="">SEMUA BULAN</option>
+                <option value="1">JANUARI</option>
+                <option value="2">FEBRUARI</option>
+                <option value="3">MAC</option>
+                <option value="4">APRIL</option>
+                <option value="5">MEI</option>
+                <option value="6">JUN</option>
+                <option value="7">JULAI</option>
+                <option value="8">OGOS</option>
+                <option value="9">SEPTEMBER</option>
+                <option value="10">OKTOBER</option>
+                <option value="11">NOVEMBER</option>
+                <option value="12">DISEMBER</option>
+              </select>
+            </div>
+            <div id="admin-actions" class="hidden ml-auto flex gap-3">
+              <button id="btn-import" onclick="importFeb2026Data()" class="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-sm rounded-xl hover:from-blue-700 hover:to-blue-800 transition shadow-md flex items-center justify-center gap-2"> 📥 IMPORT DATA FEB 2026 </button>
+              <button onclick="openAddModal()" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold text-sm rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition shadow-md"> ➕ TAMBAH REKOD </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <main class="flex-1 p-6 bg-slate-100">
+        <div class="max-w-7xl mx-auto">
+          <div id="loading-records" class="text-center py-16 hidden">
+             <div class="loader mb-4" style="width: 40px; height: 40px; border-width: 4px;"></div>
+             <p class="text-slate-500 font-semibold tracking-wider">MEMUAT TURUN DATA DARI AWAN...</p>
+          </div>
+          <div id="salary-list" class="grid gap-6">
+            <!-- Salary cards will be rendered here -->
+          </div>
+          <div id="no-records" class="hidden text-center py-16">
+            <div class="w-24 h-24 mx-auto mb-4 bg-slate-200 rounded-full flex items-center justify-center shadow-inner">
+              <svg class="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-slate-600 tracking-wide">TIADA REKOD GAJI</h3>
+            <p class="text-slate-400 mt-2 font-medium">REKOD GAJI AKAN DIPAPARKAN DI SINI</p>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="modal-form" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90%] overflow-auto animate-fade card-shadow">
+        <div class="sticky top-0 bg-white px-6 py-5 border-b flex items-center justify-between z-10 shadow-sm">
+          <h2 id="modal-title" class="text-xl font-extrabold text-slate-800 tracking-wide">TAMBAH REKOD GAJI</h2>
+          <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 text-lg font-bold transition">✕</button>
+        </div>
+        <div class="p-6 space-y-5">
+          <input type="hidden" id="edit-id">
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-bold text-slate-700 mb-2">PEKERJA</label>
+              <select id="form-employee" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none bg-slate-50 font-semibold">
+                <option value="">PILIH PEKERJA</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">BULAN</label>
+                <select id="form-month" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none bg-slate-50 font-semibold">
+                  <option value="1">JANUARI</option>
+                  <option value="2">FEBRUARI</option>
+                  <option value="3">MAC</option>
+                  <option value="4">APRIL</option>
+                  <option value="5">MEI</option>
+                  <option value="6">JUN</option>
+                  <option value="7">JULAI</option>
+                  <option value="8">OGOS</option>
+                  <option value="9">SEPTEMBER</option>
+                  <option value="10">OKTOBER</option>
+                  <option value="11">NOVEMBER</option>
+                  <option value="12">DISEMBER</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">TAHUN</label>
+                <select id="form-year" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none bg-slate-50 font-semibold">
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t-2 border-slate-100 pt-5">
+            <h3 class="font-extrabold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">💰</span> PENDAPATAN</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">GAJI ASAS (RM)</label>
+                <input type="number" id="form-basic" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">ELAUN BIASA (RM)</label>
+                <input type="number" id="form-allowance" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">ELAUN MINYAK (RM)</label>
+                <input type="number" id="form-oil" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">BONUS (RM)</label>
+                <input type="number" id="form-bonus" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-red-500 mb-1">BAYARAN PENDAHULUAN (RM)</label>
+                <input type="number" id="form-advance" class="w-full px-4 py-2.5 border-2 border-red-200 rounded-lg focus:border-red-500 focus:outline-none font-semibold text-red-600 bg-red-50" value="0" step="0.01">
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t-2 border-slate-100 pt-5">
+            <h3 class="font-extrabold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">⏰</span> KERJA LEBIH MASA (OT)</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">JAM OT</label>
+                <input type="number" id="form-ot-hours" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.5">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">KADAR OT/JAM (RM)</label>
+                <input type="number" id="form-ot-rate" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="10" step="0.01">
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t-2 border-slate-100 pt-5">
+            <h3 class="font-extrabold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">📉</span> POTONGAN</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">KWSP (RM)</label>
+                <input type="number" id="form-kwsp" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">SOCSO (RM)</label>
+                <input type="number" id="form-socso" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">EIS (RM)</label>
+                <input type="number" id="form-eis" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">POTONGAN LAIN (RM)</label>
+                <input type="number" id="form-other" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800" value="0" step="0.01">
+              </div>
+            </div>
+          </div>
+
+          <div class="border-t-2 border-slate-100 pt-5">
+            <h3 class="font-extrabold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">🚫</span> CUTI TANPA GAJI</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">HARI CUTI TANPA GAJI</label>
+                <input type="number" id="form-unpaid-days" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800 bg-slate-50" value="0" min="0">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">POTONGAN CUTI (RM)</label>
+                <input type="number" id="form-unpaid-deduction" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none font-semibold text-slate-800 bg-slate-50" value="0" step="0.01">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sticky bottom-0 bg-white px-6 py-4 border-t-2 border-slate-100 flex gap-3 justify-end z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <button onclick="closeModal()" class="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition">BATAL</button>
+          <button id="btn-save" onclick="saveRecord()" class="px-8 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-extrabold rounded-xl hover:from-amber-600 hover:to-amber-700 transition shadow-lg flex items-center justify-center gap-2 tracking-wide">SIMPAN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="modal-delete" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-3xl w-full max-w-md animate-fade p-8 text-center card-shadow">
+        <div class="w-20 h-20 mx-auto mb-5 bg-red-100 rounded-full flex items-center justify-center shadow-inner">
+          <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+        <h3 class="text-2xl font-extrabold text-slate-800 mb-2">PADAM REKOD?</h3>
+        <p class="text-slate-500 font-medium mb-8">REKOD GAJI INI AKAN DIPADAM DARI STORAN AWAN SECARA KEKAL.</p>
+        <div class="flex gap-4 justify-center">
+          <button onclick="closeDeleteModal()" class="px-6 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition w-full">BATAL</button>
+          <button id="btn-confirm-delete" onclick="confirmDelete()" class="px-6 py-3 bg-red-500 text-white font-extrabold rounded-xl hover:bg-red-600 transition shadow-lg flex items-center justify-center gap-2 w-full">PADAM</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- IC Update Modal -->
+    <div id="modal-ic" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-2xl w-full max-w-md animate-fade card-shadow">
+        <div class="px-6 py-5 border-b-2 border-slate-100 flex items-center justify-between">
+          <h2 class="text-lg font-extrabold text-slate-800">KEMASKINI NO. KAD PENGENALAN</h2>
+          <button onclick="closeICModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 font-bold transition">✕</button>
+        </div>
+        <div class="p-6">
+          <label class="block text-sm font-bold text-slate-700 mb-2">NO. KAD PENGENALAN</label>
+          <input type="text" id="form-ic" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none font-semibold text-slate-800" placeholder="CONTOH: 901234-56-7890">
+          <p class="text-xs text-slate-500 mt-3 font-medium leading-relaxed">NO. KP AKAN DIKEMASKINI UNTUK SEMUA REKOD GAJI ANDA YANG SEDIA ADA SECARA AUTOMATIK.</p>
+        </div>
+        <div class="px-6 py-5 border-t-2 border-slate-100 flex gap-3 justify-end bg-slate-50/50 rounded-b-2xl">
+          <button onclick="closeICModal()" class="px-6 py-2.5 bg-white border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition">BATAL</button>
+          <button id="btn-save-ic" onclick="saveIC()" class="px-8 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-extrabold rounded-xl hover:from-amber-600 hover:to-amber-700 transition shadow-md flex items-center justify-center gap-2">SIMPAN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Print Area (Hidden) -->
+    <div id="print-area" class="hidden"></div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] z-50 animate-fade font-bold tracking-wide border-l-4 border-white"></div>
+  </div>
+
+  <script type="module">
+    // Firebase Imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firebase Initialization
+    const firebaseConfig = typeof window.__firebase_config !== 'undefined' ? JSON.parse(window.__firebase_config) : {};
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const appId = typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id';
+    
+    let firebaseUser = null;
+    let unsubscribeSnapshot = null;
+
+    // Employee Data Structure (UPPERCASE)
+    const EMPLOYEES = [
+      { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'OPERASI', position: 'PENGURUS ORDER LUAR' },
+      { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'OPERASI', position: 'PENGURUS SHOPEE' },
+      { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'OPERASI', position: 'PENGURUS TIKTOK' },
+      { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'PENGELUARAN', position: 'PEGAWAI OPERASI PENGELUARAN' },
+      { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'PENGELUARAN', position: 'OPERATOR MESIN' },
+      { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'PENGELUARAN', position: 'OPERATOR MESIN' },
+      { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S.HAMID', dept: 'PENGELUARAN', position: 'OPERATOR MESIN' },
+      { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'PENGELUARAN', position: 'OPERATOR MESIN' },
+      { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'PEMASARAN', position: 'PEGAWAI PEMASARAN' }
+    ];
+
+    const MONTHS = ['', 'JANUARI', 'FEBRUARI', 'MAC', 'APRIL', 'MEI', 'JUN', 'JULAI', 'OGOS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DISEMBER'];
+
+    // App State
+    let currentUser = null;
+    let isAdmin = false;
+    let allRecords = [];
+    let filteredRecords = [];
+    let deleteTarget = null;
+    let isDataLoaded = false;
+
+    // Authenticate with Firebase
+    const initAuth = async () => {
+      try {
+        if (typeof window.__initial_auth_token !== 'undefined' && window.__initial_auth_token) {
+          await signInWithCustomToken(auth, window.__initial_auth_token);
         } else {
-            showToast("ID atau Kata Laluan tidak sah.", "error");
+          await signInAnonymously(auth);
         }
+      } catch (error) {
+        console.error("Firebase Auth Error:", error);
+        showToast("RALAT SISTEM, TIDAK DAPAT MENYAMBUNG KE PANGKALAN DATA.", "error");
+      }
     };
 
-    return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-xl border border-slate-100">
-                <BrandLogo size="large" />
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Kod Pekerja</label>
-                        <input type="text" value={username} onChange={e=>setUsername(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none uppercase font-bold text-slate-700 transition" placeholder="Cth: MZBE012024" required/>
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Kata Laluan</label>
-                        <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none font-bold text-slate-700 transition" placeholder="Masukkan kata laluan" required/>
-                    </div>
-                    <button type="submit" disabled={!isReady} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold text-lg shadow-lg hover:bg-blue-700 transition disabled:opacity-50">
-                        {isReady ? 'Log Masuk Sistem' : 'Memuat Data...'}
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
-}
+    onAuthStateChanged(auth, (user) => {
+      firebaseUser = user;
+      if (user) {
+        document.getElementById('cloud-status').classList.remove('bg-red-400');
+        document.getElementById('cloud-status').classList.add('bg-emerald-400');
+        document.getElementById('cloud-status').title = "BERSAMBUNG KE AWAN";
+        setupRealtimeListener();
+      } else {
+        document.getElementById('cloud-status').classList.remove('bg-emerald-400');
+        document.getElementById('cloud-status').classList.add('bg-red-400');
+        document.getElementById('cloud-status').title = "TERPUTUS DARI AWAN";
+        if (unsubscribeSnapshot) unsubscribeSnapshot();
+      }
+    });
 
-// ==========================================
-// MODULE 1: ATTENDANCE
-// ==========================================
-function ModuleAttendance({ user, employees, attendances, leaves, settings, showToast }) {
-    const isAdmin = user?.code === 'ADMIN';
-    const today = getTodayString();
-    const [filterDate, setFilterDate] = useState(today);
-    const [modalGps, setModalGps] = useState(null);
-    const [appealReason, setAppealReason] = useState('');
+    // Start App Initialization
+    window.onload = () => {
+      initUI();
+      initAuth();
+    };
 
-    const myAtt = attendances.find(a => (a?.date || '') === today && (a?.empCode || '') === user.code) || {};
-    const isOnLeave = leaves.some(l => (l?.empCode || '') === user.code && (l?.status || '') === 'Lulus' && today >= (l?.startDate || '') && today <= (l?.endDate || ''));
-
-    const verifyLocationAndExecute = (actionName, callback) => {
-        if (settings.bypassGps || isAdmin) { callback(); return; }
+    // Listen for Realtime Updates from Firestore
+    function setupRealtimeListener() {
+      if (!firebaseUser) return;
+      
+      const recordsRef = collection(db, 'artifacts', appId, 'public', 'data', 'salary_records');
+      
+      unsubscribeSnapshot = onSnapshot(recordsRef, (snapshot) => {
+        allRecords = [];
+        snapshot.forEach(doc => {
+          allRecords.push({ ...doc.data(), __backendId: doc.id });
+        });
         
-        setModalGps({ type: 'loading', msg: 'Sedang mencari isyarat GPS...' });
-        if (!navigator.geolocation) { setModalGps({ type: 'error', msg: 'Peranti anda tidak menyokong GPS.' }); return; }
-
-        navigator.geolocation.getCurrentPosition(pos => {
-            const dist = getDistanceInMeters(pos.coords.latitude, pos.coords.longitude, SHOP_LAT, SHOP_LNG);
-            if (dist <= ALLOWED_RADIUS) {
-                setModalGps(null); callback();
-            } else {
-                setModalGps({ type: 'error', msg: `Akses ditolak. Jarak: ${Math.round(dist)}m dari kedai (Maks: ${ALLOWED_RADIUS}m).` });
-            }
-        }, err => {
-            setModalGps({ type: 'error', msg: 'Sila benarkan akses Lokasi (Location/GPS) pada pelayar peranti anda.' });
-        }, { enableHighAccuracy: true });
-    };
-
-    const punch = async (field) => {
-        const now = new Date();
-        const recordId = `${today}_${user.code}`;
-        let data = { [field]: now.toISOString(), updated_at: now.toISOString() };
-        
-        if(field === 'clock_in') {
-            data.empCode = user.code; 
-            data.empName = user.name; 
-            data.date = today;
-            data.isLate = (now.getHours() > 8 || (now.getHours() === 8 && now.getMinutes() > 15));
-            data.appealStatus = 'None'; 
-            data.appealReason = '';
-        }
-
-        try {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attendance', recordId), data, {merge:true});
-            showToast(`Berjaya rekod kehadiran`, 'success');
-        } catch(e) { showToast('Ralat pelayan.', 'error'); }
-    };
-
-    const submitAppeal = async () => {
-        if(!appealReason.trim()) return showToast("Sila masukkan alasan munasabah.", "error");
-        const recordId = `${today}_${user.code}`;
-        try {
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'attendance', recordId), { appealStatus: 'Pending', appealReason });
-            showToast("Rayuan telah dihantar kepada Admin.", "success");
-            setAppealReason('');
-        } catch(e) { showToast('Gagal menghantar rayuan.', 'error'); }
-    };
-
-    const renderPunchButton = (field, label, dependsOn, mustBeNull, colorClass) => {
-        const isDone = !!myAtt[field];
-        const isDisabled = isDone || (dependsOn && !myAtt[dependsOn]) || (mustBeNull && !!myAtt[mustBeNull]);
-        
-        return (
-            <button disabled={isDisabled} onClick={() => verifyLocationAndExecute(label, () => punch(field))} 
-                className={`p-4 rounded-2xl flex flex-col items-center justify-center gap-2 transition-all shadow-sm border ${isDisabled ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : `${colorClass} text-white border-transparent active:scale-95 shadow-md`}`}>
-                <span className="font-bold text-xs uppercase tracking-wider">{label}</span>
-                <span className={`text-[11px] font-mono ${isDone ? 'bg-black/10 text-white px-2 py-0.5 rounded-md' : ''}`}>{isDone ? formatTimeDisplay(myAtt[field]) : '--:--'}</span>
-            </button>
-        );
-    };
-
-    if (!isAdmin) {
-        return (
-            <div className="space-y-6 max-w-3xl mx-auto">
-                {modalGps && (
-                    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
-                            {modalGps.type === 'loading' ? <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div> : <div className="flex justify-center text-rose-500 mb-4"><IconMapPin size={48}/></div>}
-                            <h3 className="font-bold text-lg mb-2 text-slate-800">{modalGps.type === 'loading' ? 'Mengesahkan Lokasi...' : 'Akses Ditolak'}</h3>
-                            <p className="text-sm text-slate-500 mb-6">{modalGps.msg}</p>
-                            {modalGps.type === 'error' && <button onClick={()=>setModalGps(null)} className="w-full py-3 bg-slate-800 text-white rounded-xl font-bold">Tutup</button>}
-                        </div>
-                    </div>
-                )}
-
-                {isOnLeave ? (
-                    <div className="bg-amber-50 border border-amber-200 p-8 rounded-3xl text-center">
-                        <div className="text-4xl mb-4">🏖️</div><h2 className="text-xl font-black text-amber-800 mb-2">Selamat Bercuti!</h2>
-                        <p className="text-sm text-amber-600">Anda sedang bercuti hari ini. Fungsi Punch Card ditutup.</p>
-                    </div>
-                ) : (
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                        <div className="text-center mb-6">
-                            <h2 className="text-xl font-bold text-slate-800">Punch Card Harian</h2>
-                            <p className="text-sm text-slate-500 mt-1">{new Date().toLocaleDateString('ms-MY', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</p>
-                            <div className="inline-block mt-3 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100">Waktu Balik Set: {settings.clockOutTime === '17:00' ? '5:00 PM' : '4:30 PM'}</div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {renderPunchButton('clock_in', 'Clock In', null, null, 'bg-emerald-500')}
-                            {renderPunchButton('break_start', 'Rehat Keluar', 'clock_in', 'clock_out', 'bg-amber-500')}
-                            {renderPunchButton('break_end', 'Rehat Masuk', 'break_start', 'clock_out', 'bg-sky-500')}
-                            {renderPunchButton('clock_out', 'Clock Out', 'clock_in', null, 'bg-rose-500')}
-                            {renderPunchButton('ot_start', 'OT Masuk', 'clock_out', null, 'bg-purple-500')}
-                            {renderPunchButton('ot_end', 'OT Keluar', 'ot_start', null, 'bg-indigo-500')}
-                        </div>
-
-                        {myAtt.isLate && (
-                            <div className="mt-8 p-5 bg-rose-50 border border-rose-200 rounded-2xl">
-                                <div className="flex items-center gap-2 text-rose-700 font-bold mb-2"><IconAlert size={20}/> Anda Rekod Masuk Lewat</div>
-                                <p className="text-xs text-rose-600 mb-4">Pemotongan gaji RM 5.00 akan dikenakan pada bulan ini. Jika anda mempunyai alasan kecemasan yang munasabah, sila hantar rayuan.</p>
-                                
-                                {myAtt.appealStatus === 'None' && (
-                                    <div className="flex gap-2"><input type="text" value={appealReason} onChange={e=>setAppealReason(e.target.value)} placeholder="Tulis alasan di sini..." className="flex-1 text-sm p-2 rounded-lg border border-rose-200 outline-none"/><button onClick={submitAppeal} className="bg-rose-600 text-white px-4 py-2 rounded-lg font-bold text-sm">Hantar</button></div>
-                                )}
-                                {myAtt.appealStatus === 'Pending' && <div className="bg-white p-3 rounded-lg text-sm text-amber-600 font-bold border border-amber-200">⏳ Rayuan sedang diproses oleh Admin.</div>}
-                                {myAtt.appealStatus === 'Approved' && <div className="bg-white p-3 rounded-lg text-sm text-emerald-600 font-bold border border-emerald-200">✅ Rayuan Lulus. Tiada potongan RM5.</div>}
-                                {myAtt.appealStatus === 'Ditolak' && <div className="bg-white p-3 rounded-lg text-sm text-rose-700 font-bold border border-rose-200">❌ Rayuan Ditolak. Potongan RM5 dikekalkan.</div>}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div className="p-4 border-b bg-slate-50"><h3 className="font-bold text-slate-700">Sejarah Terkini</h3></div>
-                    <div className="p-4 space-y-3">
-                        {attendances.filter(a => (a?.empCode || '') === user.code).sort((a,b) => (b?.date || '').localeCompare(a?.date || '')).slice(0,7).map(a => (
-                            <div key={a.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0">
-                                <span className="font-medium text-slate-600">{a.date}</span>
-                                <div className="flex gap-3 text-xs font-mono">
-                                    <span className="text-emerald-600">IN: {formatTimeDisplay(a.clock_in)}</span>
-                                    <span className="text-rose-600">OUT: {formatTimeDisplay(a.clock_out)}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
+        isDataLoaded = true;
+        document.getElementById('loading-records').classList.add('hidden');
+        sortAndApplyData();
+      }, (error) => {
+        console.error("Firestore Error:", error);
+        showToast('RALAT MEMUAT TURUN DATA AWAN.', 'error');
+        document.getElementById('loading-records').classList.add('hidden');
+      });
     }
 
-    const filteredAtt = attendances.filter(a => (a?.date || '') === filterDate);
-    return (
-        <div className="space-y-6">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-wrap justify-between items-center gap-4">
-                <h2 className="font-bold text-lg text-slate-800">Senarai Kehadiran Harian</h2>
-                <input type="date" value={filterDate} onChange={e=>setFilterDate(e.target.value)} className="p-2 border-2 border-slate-200 rounded-lg font-medium outline-none focus:border-blue-500" />
+    // Initialize UI Selectors
+    function initUI() {
+      const yearSelect = document.getElementById('filter-year');
+      const formYearSelect = document.getElementById('form-year');
+      const currentYear = new Date().getFullYear();
+      
+      for (let y = 2022; y <= currentYear + 1; y++) {
+        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+        formYearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+      }
+      formYearSelect.value = currentYear;
+      
+      // Default to Feb 2026 filters
+      document.getElementById('filter-year').value = '2026';
+      document.getElementById('filter-month').value = '2';
+
+      const empSelect = document.getElementById('form-employee');
+      EMPLOYEES.forEach(emp => {
+        empSelect.innerHTML += `<option value="${emp.code}">${emp.name}</option>`;
+      });
+    }
+
+    function sortAndApplyData() {
+      allRecords.sort((a, b) => {
+        if (b.year !== a.year) return b.year - a.year;
+        return b.month - a.month;
+      });
+      applyFilters();
+    }
+
+    // --- Window Expose Functions for HTML bindings ---
+
+    window.handleLogin = function() {
+      const username = document.getElementById('login-username').value.trim().toUpperCase();
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
+
+      if (username === 'ADMIN' && password === 'admin123') {
+        currentUser = { code: 'ADMIN', name: 'ADMINISTRATOR', isAdmin: true };
+        isAdmin = true;
+        showDashboard();
+        return;
+      }
+
+      const employee = EMPLOYEES.find(e => e.code.toUpperCase() === username && e.code === password);
+      if (employee) {
+        currentUser = { ...employee, isAdmin: false };
+        isAdmin = false;
+        showDashboard();
+        return;
+      }
+
+      errorEl.textContent = 'KOD PEKERJA ATAU KATA LALUAN TIDAK SAH';
+      errorEl.classList.remove('hidden');
+    };
+
+    window.handleLogout = function() {
+      currentUser = null;
+      isAdmin = false;
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('login-username').value = '';
+      document.getElementById('login-password').value = '';
+      document.getElementById('login-error').classList.add('hidden');
+    };
+
+    function showDashboard() {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      document.getElementById('user-display').textContent = currentUser.name.toUpperCase();
+      document.getElementById('role-display').textContent = isAdmin ? 'PENTADBIR' : (currentUser.position || '').toUpperCase();
+      
+      if (isAdmin) {
+        document.getElementById('admin-actions').classList.remove('hidden');
+        document.getElementById('btn-update-ic').classList.add('hidden');
+      } else {
+        document.getElementById('admin-actions').classList.add('hidden');
+        document.getElementById('btn-update-ic').classList.remove('hidden');
+      }
+
+      if(!isDataLoaded) {
+          document.getElementById('loading-records').classList.remove('hidden');
+      }
+
+      applyFilters();
+    }
+
+    window.applyFilters = applyFilters;
+    function applyFilters() {
+      const year = document.getElementById('filter-year').value;
+      const month = document.getElementById('filter-month').value;
+
+      filteredRecords = allRecords.filter(r => {
+        if (!isAdmin && r.employee_code !== currentUser.code) return false;
+        if (year && r.year != year) return false;
+        if (month && r.month != month) return false;
+        return true;
+      });
+
+      renderSalaryList();
+    }
+
+    function renderSalaryList() {
+      const container = document.getElementById('salary-list');
+      const noRecords = document.getElementById('no-records');
+      const loadingRecords = document.getElementById('loading-records');
+
+      if(!isDataLoaded) {
+          container.innerHTML = '';
+          noRecords.classList.add('hidden');
+          loadingRecords.classList.remove('hidden');
+          return;
+      }
+
+      loadingRecords.classList.add('hidden');
+
+      if (filteredRecords.length === 0) {
+        container.innerHTML = '';
+        noRecords.classList.remove('hidden');
+        return;
+      }
+
+      noRecords.classList.add('hidden');
+      
+      container.innerHTML = filteredRecords.map(record => {
+        const totalAllowance = (record.allowance || 0) + (record.oil_allowance || 0);
+        const otAmount = (record.ot_hours || 0) * (record.ot_rate || 10);
+        const grossIncome = (record.basic_salary || 0) + totalAllowance + otAmount + (record.bonus || 0);
+        
+        // PENTING: Bayaran pendahuluan tidak ditolak dari Gaji Bersih berdasarkan permintaan
+        const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0);
+        const netSalary = grossIncome - totalDeductions;
+        
+        const emp = EMPLOYEES.find(e => e.code === record.employee_code) || {};
+
+        return `
+          <div class="bg-white rounded-2xl card-shadow p-6 animate-fade border border-slate-100 uppercase transition-all hover:shadow-[0_15px_50px_rgba(0,0,0,0.12)] hover:-translate-y-1">
+            <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+              <div>
+                <h3 class="text-xl font-extrabold text-slate-800 tracking-wide">${MONTHS[record.month]} ${record.year}</h3>
+                ${isAdmin ? `<p class="text-sm font-bold text-amber-600 mt-1">${(emp.name || record.employee_name).toUpperCase()}</p>` : ''}
+                <p class="text-xs text-slate-400 font-semibold mt-1 flex items-center gap-2">
+                  <span class="bg-slate-100 px-2 py-1 rounded-md text-slate-500">${(emp.dept || record.department).toUpperCase()}</span>
+                  <span class="bg-slate-100 px-2 py-1 rounded-md text-slate-500">${(emp.position || record.position).toUpperCase()}</span>
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="printSlip('${record.__backendId}')" class="p-2.5 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-sm" title="CETAK SLIP">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                </button>
+                <button onclick="downloadSlip('${record.__backendId}')" class="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition shadow-sm" title="MUAT TURUN SLIP">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                </button>
+                ${isAdmin ? `
+                  <div class="w-px h-8 bg-slate-200 mx-1"></div>
+                  <button onclick="openEditModal('${record.__backendId}')" class="p-2.5 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white transition shadow-sm" title="EDIT REKOD">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                  </button>
+                  <button onclick="openDeleteModal('${record.__backendId}')" class="p-2.5 rounded-xl bg-red-50 text-red-600 hover:bg-red-500 hover:text-white transition shadow-sm" title="PADAM REKOD">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                  </button>
+                ` : ''}
+              </div>
             </div>
-
-            <div className="bg-white rounded-3xl shadow-sm border overflow-x-auto">
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                    <thead className="bg-slate-50 text-slate-500 text-xs uppercase border-b">
-                        <tr><th className="p-4">Pekerja</th><th className="p-4 text-center">Masuk</th><th className="p-4 text-center">Rehat (Out/In)</th><th className="p-4 text-center">Balik</th><th className="p-4 text-center">OT (In/Out)</th><th className="p-4">Status & Tindakan</th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {filteredAtt.length === 0 ? <tr><td colSpan="6" className="p-8 text-center text-slate-400">Tiada rekod pada tarikh ini.</td></tr> : 
-                        filteredAtt.map(a => {
-                            const emp = employees.find(e => e.code === a.empCode);
-                            const displayName = emp ? emp.name : 'Pekerja Tidak Diketahui';
-                            return (
-                                <tr key={a.id} className="hover:bg-slate-50">
-                                    <td className="p-4 font-bold text-slate-700">{displayName}</td>
-                                    <td className="p-4 text-center"><span className="text-emerald-600 font-mono bg-emerald-50 px-2 py-1 rounded">{formatTimeDisplay(a.clock_in)}</span></td>
-                                    <td className="p-4 text-center text-xs text-slate-500 font-mono">{formatTimeDisplay(a.break_start)} - {formatTimeDisplay(a.break_end)}</td>
-                                    <td className="p-4 text-center"><span className="text-rose-600 font-mono bg-rose-50 px-2 py-1 rounded">{formatTimeDisplay(a.clock_out)}</span></td>
-                                    <td className="p-4 text-center text-xs text-purple-600 font-mono">{formatTimeDisplay(a.ot_start)} - {formatTimeDisplay(a.ot_end)}</td>
-                                    <td className="p-4">
-                                        {!a.isLate ? <span className="text-xs font-bold text-emerald-600 px-2 py-1 bg-emerald-100 rounded">On Time</span> : 
-                                            <div>
-                                                <span className="text-xs font-bold text-rose-600 px-2 py-1 bg-rose-100 rounded mb-1 inline-block">Lewat (Denda RM5)</span>
-                                                {a.appealStatus === 'Pending' && (
-                                                    <div className="mt-1 flex items-center gap-1">
-                                                        <button onClick={async()=>await updateDoc(doc(db,'artifacts',appId,'public','data','attendance',a.id),{appealStatus:'Approved'})} className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded">LULUS</button>
-                                                        <button onClick={async()=>await updateDoc(doc(db,'artifacts',appId,'public','data','attendance',a.id),{appealStatus:'Ditolak'})} className="px-2 py-1 bg-rose-500 text-white text-[10px] font-bold rounded">TOLAK</button>
-                                                        <span className="text-[10px] text-slate-500 italic max-w-[100px] truncate" title={a.appealReason}>{a.appealReason}</span>
-                                                    </div>
-                                                )}
-                                                {a.appealStatus === 'Approved' && <div className="text-[10px] text-emerald-600 font-bold mt-1">Rayuan Diterima (Tiada Potongan)</div>}
-                                                {a.appealStatus === 'Ditolak' && <div className="text-[10px] text-rose-600 font-bold mt-1">Rayuan Ditolak</div>}
-                                            </div>
-                                        }
-                                    </td>
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
+            
+            <div class="bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl p-5 mb-5 shadow-lg relative overflow-hidden">
+              <div class="absolute -right-4 -top-4 opacity-10">
+                <svg class="w-32 h-32 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91s4.18 1.39 4.18 3.91c-.01 1.83-1.38 2.83-3.12 3.16z"/></svg>
+              </div>
+              <p class="text-emerald-100 text-xs font-bold tracking-widest mb-1">GAJI BERSIH</p>
+              <p class="text-4xl font-black text-white drop-shadow-md">RM ${netSalary.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
             </div>
-        </div>
-    );
-}
-
-function ModuleLeaves({ user, leaves, employees, showToast }) {
-    const isAdmin = user?.code === 'ADMIN';
-    const [form, setForm] = useState({ type: 'Cuti Bergaji', startDate: '', endDate: '', reason: '' });
-
-    const submitForm = async (e) => {
-        e.preventDefault();
-        if(form.startDate > form.endDate) return showToast("Tarikh Mula tidak boleh melebihi Tarikh Tamat", "error");
-        try {
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'leaves'), { ...form, empCode: user.code, status: 'Menunggu', appliedAt: new Date().toISOString() });
-            setForm({ type: 'Cuti Bergaji', startDate: '', endDate: '', reason: '' });
-            showToast("Permohonan Cuti Dihantar!", "success");
-        } catch(err) { showToast("Ralat.", "error"); }
-    };
-
-    const updateStatus = async (id, status) => {
-        try {
-            await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaves', id), { status });
-            showToast(`Status ditukar ke ${status}`, "success");
-        } catch(e) { showToast("Gagal dikemaskini", "error"); }
-    };
-
-    const deleteLeave = async (id) => {
-        if(window.confirm("Padam permohonan ini?")) {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'leaves', id));
-        }
-    };
-
-    const myLeaves = isAdmin ? leaves : leaves.filter(l => (l?.empCode || '') === user.code);
-    myLeaves.sort((a,b) => (b?.appliedAt || '').localeCompare(a?.appliedAt || ''));
-
-    return (
-        <div className="space-y-6 max-w-5xl mx-auto">
-            {!isAdmin && (
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                    <h2 className="text-lg font-bold text-slate-800 mb-4">Mohon Cuti Baru</h2>
-                    <form onSubmit={submitForm} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                            <label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Jenis Cuti</label>
-                            <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})} className="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none focus:border-blue-500 font-bold"><option>Cuti Bergaji</option><option>Cuti Tanpa Gaji</option><option>Cuti Sakit (MC)</option><option>Cuti Kecemasan</option></select>
-                        </div>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Dari Tarikh</label><input type="date" value={form.startDate} onChange={e=>setForm({...form,startDate:e.target.value})} required className="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none focus:border-blue-500 font-bold"/></div>
-                        <div><label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Hingga Tarikh</label><input type="date" value={form.endDate} onChange={e=>setForm({...form,endDate:e.target.value})} required className="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none focus:border-blue-500 font-bold"/></div>
-                        <div className="md:col-span-2"><label className="block text-xs font-bold text-slate-500 mb-1 uppercase">Sebab</label><textarea value={form.reason} onChange={e=>setForm({...form,reason:e.target.value})} required placeholder="Nyatakan sebab..." className="w-full p-3 bg-slate-50 border-2 rounded-xl outline-none focus:border-blue-500 h-20 resize-none"></textarea></div>
-                        <div className="md:col-span-2"><button type="submit" className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition">Hantar Permohonan</button></div>
-                    </form>
-                </div>
-            )}
-
-            <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                <div className="p-4 bg-slate-50 border-b"><h3 className="font-bold text-slate-700">Rekod & Status Permohonan Cuti</h3></div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="text-xs text-slate-500 uppercase border-b"><tr>{isAdmin && <th className="p-4">Pekerja</th>}<th className="p-4">Jenis</th><th className="p-4">Tarikh</th><th className="p-4">Sebab</th><th className="p-4">Status</th>{isAdmin && <th className="p-4 text-right">Tindakan</th>}</tr></thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {myLeaves.length === 0 ? <tr><td colSpan="6" className="p-8 text-center text-slate-400">Tiada rekod permohonan.</td></tr> : 
-                            myLeaves.map(l => {
-                                const emp = employees.find(e => e.code === l.empCode);
-                                const displayName = emp ? emp.name : 'Pekerja Tidak Diketahui';
-                                return (
-                                <tr key={l.id} className="hover:bg-slate-50">
-                                    {isAdmin && <td className="p-4 font-bold text-slate-700">{displayName}</td>}
-                                    <td className="p-4 font-medium">{l.type}</td>
-                                    <td className="p-4 font-mono text-xs">{l.startDate} <span className="text-slate-400">hingga</span> {l.endDate}</td>
-                                    <td className="p-4 text-slate-500 text-xs max-w-[200px] truncate" title={l.reason}>{l.reason}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${l.status==='Lulus'?'bg-emerald-100 text-emerald-700':l.status==='Ditolak'?'bg-rose-100 text-rose-700':'bg-amber-100 text-amber-700'}`}>{l.status}</span>
-                                    </td>
-                                    {isAdmin && (
-                                        <td className="p-4 text-right flex gap-1 justify-end items-center">
-                                            {l.status === 'Menunggu' && (
-                                                <div className="flex justify-end gap-1">
-                                                    <button onClick={()=>updateStatus(l.id, 'Lulus')} className="p-1.5 bg-emerald-500 text-white rounded hover:bg-emerald-600"><IconCheck size={16}/></button>
-                                                    <button onClick={()=>updateStatus(l.id, 'Ditolak')} className="p-1.5 bg-rose-500 text-white rounded hover:bg-rose-600"><IconAlert size={16}/></button>
-                                                </div>
-                                            )}
-                                            {l.status !== 'Menunggu' && <button onClick={()=>deleteLeave(l.id)} className="p-1.5 bg-slate-200 text-slate-600 rounded hover:bg-rose-500 hover:text-white transition"><IconTrash size={16}/></button>}
-                                        </td>
-                                    )}
-                                </tr>
-                            )})}
-                        </tbody>
-                    </table>
-                </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 shadow-sm">
+                <p class="text-slate-500 font-bold text-xs tracking-wider mb-1">GAJI ASAS</p>
+                <p class="font-extrabold text-slate-800 text-lg">RM ${(record.basic_salary || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 shadow-sm">
+                <p class="text-slate-500 font-bold text-xs tracking-wider mb-1">ELAUN</p>
+                <p class="font-extrabold text-slate-800 text-lg">RM ${totalAllowance.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                <p class="text-[10px] text-slate-400 mt-1 font-semibold">BIASA: RM${(record.allowance || 0).toFixed(2)} | MYK: RM${(record.oil_allowance || 0).toFixed(2)}</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 shadow-sm">
+                <p class="text-slate-500 font-bold text-xs tracking-wider mb-1">OT</p>
+                <p class="font-extrabold text-slate-800 text-lg">RM ${otAmount.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                <p class="text-[10px] text-slate-400 mt-1 font-semibold">${record.ot_hours || 0}J × RM${(record.ot_rate || 10).toFixed(2)}</p>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 shadow-sm">
+                <p class="text-slate-500 font-bold text-xs tracking-wider mb-1">BONUS</p>
+                <p class="font-extrabold text-slate-800 text-lg">RM ${(record.bonus || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+              </div>
+              ${isAdmin && (record.advance_payment || 0) > 0 ? `
+              <div class="bg-red-50 rounded-xl p-4 border border-red-100 shadow-sm">
+                <p class="text-red-600 font-bold text-xs tracking-wider mb-1">ADVANCE</p>
+                <p class="font-extrabold text-red-700 text-lg">-RM ${(record.advance_payment || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+              </div>
+              ` : ''}
+              ${record.unpaid_leave_days > 0 ? `
+              <div class="bg-orange-50 rounded-xl p-4 border border-orange-100 shadow-sm">
+                <p class="text-orange-600 font-bold text-xs tracking-wider mb-1">CUTI T.GAJI</p>
+                <p class="font-extrabold text-orange-700 text-lg">-RM ${(record.unpaid_leave_deduction || 0).toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                <p class="text-[10px] text-orange-500 mt-1 font-semibold">${record.unpaid_leave_days} HARI</p>
+              </div>
+              ` : ''}
+              <div class="bg-slate-50 rounded-xl p-4 border border-slate-100 shadow-sm">
+                <p class="text-slate-500 font-bold text-xs tracking-wider mb-1">POTONGAN WJB</p>
+                <p class="font-extrabold text-slate-700 text-lg">-RM ${totalDeductions.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</p>
+                <p class="text-[10px] text-slate-400 mt-1 font-semibold leading-tight">KWSP: RM${(record.kwsp || 0).toFixed(2)} | SOCSO: RM${(record.socso || 0).toFixed(2)}<br>EIS: RM${(record.eis || 0).toFixed(2)}</p>
+              </div>
             </div>
-        </div>
-    );
-}
+          </div>
+        `;
+      }).join('');
+    }
 
-function ModuleSalary({ attendances, leaves, salaries, employees, showToast }) {
-    const [year, setYear] = useState(new Date().getFullYear().toString());
-    const [month, setMonth] = useState((new Date().getMonth() + 1).toString());
-    const [modalForm, setModalForm] = useState(null); 
-    const [showReport, setShowReport] = useState(false);
-    
-    const filteredSalaries = salaries.filter(s => (s?.year || '') === year && (s?.month || '') === month);
-
-    const getDefaultsFromEmp = (empCode) => {
-        const emp = employees.find(e => (e?.code || '') === empCode);
-        if(!emp) return {};
-        
-        let lateCount = 0; let unpaidCount = 0;
-        attendances.forEach(a => { if((a?.empCode || '') === empCode && a?.isLate && a?.appealStatus !== 'Approved' && (a?.date || '').startsWith(`${year}-${month.padStart(2,'0')}`)) lateCount++; });
-        leaves.forEach(l => { if((l?.empCode || '') === empCode && l?.status === 'Lulus' && l?.type === 'Cuti Tanpa Gaji' && (l?.startDate || '').startsWith(`${year}-${month.padStart(2,'0')}`)) {
-            const s = new Date(l.startDate); const e = new Date(l.endDate);
-            unpaidCount += Math.round((e-s)/(1000*60*60*24)) + 1;
-        }});
-        
-        const basic = emp.basic || 0;
-        const dailyRate = basic / 26;
-        const unpaidDeduct = dailyRate * unpaidCount;
-        const lateDeduct = lateCount * 5;
-        const kwsp = basic * 0.11; 
-
-        return { basic_salary: basic, unpaid_leave_days: unpaidCount, unpaid_leave_deduction: parseFloat(unpaidDeduct.toFixed(2)), late_deduction: lateDeduct, kwsp: parseFloat(kwsp.toFixed(2)), allowance:0, ot_hours:0, ot_rate:10, bonus:0, advance_payment:0, socso:0, eis:0, other_deductions:0 };
+    // Modal Operations
+    window.openAddModal = function() {
+      document.getElementById('modal-title').textContent = 'TAMBAH REKOD GAJI';
+      document.getElementById('edit-id').value = '';
+      document.getElementById('form-employee').value = '';
+      document.getElementById('form-month').value = new Date().getMonth() + 1;
+      document.getElementById('form-year').value = new Date().getFullYear();
+      
+      const inputs = ['form-basic', 'form-allowance', 'form-oil', 'form-bonus', 'form-advance', 'form-ot-hours', 'form-kwsp', 'form-socso', 'form-eis', 'form-other', 'form-unpaid-days', 'form-unpaid-deduction'];
+      inputs.forEach(id => document.getElementById(id).value = 0);
+      document.getElementById('form-ot-rate').value = 10;
+      
+      document.getElementById('modal-form').classList.remove('hidden');
     };
 
-    const openAdd = () => {
-        const firstEmpCode = employees.find(e=>(e?.code || '') !== 'ADMIN')?.code;
-        setModalForm({ mode: 'add', data: { empCode: firstEmpCode, ...getDefaultsFromEmp(firstEmpCode) } });
-    };
-    const openEdit = (sal) => setModalForm({ mode: 'edit', data: { ...sal } });
-    const closeM = () => setModalForm(null);
+    window.openEditModal = function(id) {
+      const record = allRecords.find(r => r.__backendId === id);
+      if (!record) return;
 
-    const handleFormChange = (e, field) => {
-        let val = e.target.value;
-        const newData = { ...modalForm.data, [field]: val };
-        
-        if (field === 'empCode' && modalForm.mode === 'add') {
-            Object.assign(newData, getDefaultsFromEmp(val));
-        }
-        if (field === 'basic_salary' || field === 'unpaid_leave_days') {
-            const b = parseFloat(newData.basic_salary) || 0;
-            const d = parseInt(newData.unpaid_leave_days) || 0;
-            newData.unpaid_leave_deduction = parseFloat(((b / 26) * d).toFixed(2));
-        }
-        setModalForm({ ...modalForm, data: newData });
-    };
-
-    const saveSalary = async (e) => {
-        e.preventDefault(); const d = modalForm.data;
-        const emp = employees.find(x => (x?.code || '') === d.empCode);
-        const recordId = modalForm.mode === 'edit' ? d.id : `sal_${d.empCode}_${year}_${month}`;
-        
-        const finalData = {
-            empCode: d.empCode, empName: emp?.name || '', icNumber: emp?.ic || '', year, month,
-            basic_salary: parseFloat(d.basic_salary)||0, allowance: parseFloat(d.allowance)||0, ot_hours: parseFloat(d.ot_hours)||0, ot_rate: parseFloat(d.ot_rate)||0, bonus: parseFloat(d.bonus)||0, advance_payment: parseFloat(d.advance_payment)||0,
-            kwsp: parseFloat(d.kwsp)||0, socso: parseFloat(d.socso)||0, eis: parseFloat(d.eis)||0, other_deductions: parseFloat(d.other_deductions)||0, late_deduction: parseFloat(d.late_deduction)||0,
-            unpaid_leave_days: parseInt(d.unpaid_leave_days)||0, unpaid_leave_deduction: parseFloat(d.unpaid_leave_deduction)||0,
-            updatedAt: new Date().toISOString()
-        };
-
-        try {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), finalData, {merge:true});
-            showToast('Rekod Gaji Disimpan!', 'success'); 
-            closeM();
-        } catch(err) {
-            showToast('Gagal menyimpan rekod gaji.', 'error');
-        }
+      document.getElementById('modal-title').textContent = 'EDIT REKOD GAJI';
+      document.getElementById('edit-id').value = id;
+      document.getElementById('form-employee').value = record.employee_code;
+      document.getElementById('form-month').value = record.month;
+      document.getElementById('form-year').value = record.year;
+      document.getElementById('form-basic').value = record.basic_salary || 0;
+      document.getElementById('form-allowance').value = record.allowance || 0;
+      document.getElementById('form-oil').value = record.oil_allowance || 0;
+      document.getElementById('form-bonus').value = record.bonus || 0;
+      document.getElementById('form-advance').value = record.advance_payment || 0;
+      document.getElementById('form-ot-hours').value = record.ot_hours || 0;
+      document.getElementById('form-ot-rate').value = record.ot_rate || 10;
+      document.getElementById('form-kwsp').value = record.kwsp || 0;
+      document.getElementById('form-socso').value = record.socso || 0;
+      document.getElementById('form-eis').value = record.eis || 0;
+      document.getElementById('form-other').value = record.other_deductions || 0;
+      document.getElementById('form-unpaid-days').value = record.unpaid_leave_days || 0;
+      document.getElementById('form-unpaid-deduction').value = record.unpaid_leave_deduction || 0;
+      
+      document.getElementById('modal-form').classList.remove('hidden');
     };
 
-    const importPukal = async () => {
-        if(!window.confirm(`Bina rekod gaji pukal untuk bulan ${MONTHS[parseInt(month)]} ${year}?`)) return;
-        showToast('Membina rekod...', 'info');
-        try {
-            for (const emp of employees.filter(e => (e?.code || '') !== 'ADMIN')) {
-                const id = `sal_${emp.code}_${year}_${month}`;
-                const def = getDefaultsFromEmp(emp.code);
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', id), { empCode: emp.code, empName: emp.name, icNumber: emp.ic||'', year, month, ...def, updatedAt: new Date().toISOString() }, {merge:true});
-            }
-            showToast('Selesai dibina!', 'success');
-        } catch(err) {
-            showToast('Ralat membina rekod.', 'error');
-        }
+    window.closeModal = function() {
+      document.getElementById('modal-form').classList.add('hidden');
     };
 
-    const importFeb2026Data = async () => {
-        if(!window.confirm("Anda pasti mahu import data Gaji Februari 2026 secara spesifik?")) return;
-        showToast('Memuat naik data Februari 2026...', 'info');
-        
+    // Save Data to Firestore
+    window.saveRecord = async function() {
+      if (!firebaseUser) return;
+      
+      const empCode = document.getElementById('form-employee').value;
+      if (!empCode) {
+        showToast('SILA PILIH PEKERJA', 'error');
+        return;
+      }
+
+      const emp = EMPLOYEES.find(e => e.code === empCode);
+      const editId = document.getElementById('edit-id').value;
+      const btnSave = document.getElementById('btn-save');
+
+      // Preserve existing IC Number during edits
+      let icNumber = '';
+      if (editId) {
+          const existingRec = allRecords.find(r => r.__backendId === editId);
+          if (existingRec && existingRec.ic_number) {
+              icNumber = existingRec.ic_number;
+          }
+      }
+
+      const recordData = {
+        employee_code: empCode.toUpperCase(),
+        employee_name: emp.name.toUpperCase(),
+        department: emp.dept.toUpperCase(),
+        position: emp.position.toUpperCase(),
+        ic_number: icNumber.toUpperCase(),
+        month: parseInt(document.getElementById('form-month').value),
+        year: parseInt(document.getElementById('form-year').value),
+        basic_salary: parseFloat(document.getElementById('form-basic').value) || 0,
+        allowance: parseFloat(document.getElementById('form-allowance').value) || 0,
+        oil_allowance: parseFloat(document.getElementById('form-oil').value) || 0,
+        ot_hours: parseFloat(document.getElementById('form-ot-hours').value) || 0,
+        ot_rate: parseFloat(document.getElementById('form-ot-rate').value) || 10,
+        bonus: parseFloat(document.getElementById('form-bonus').value) || 0,
+        advance_payment: parseFloat(document.getElementById('form-advance').value) || 0,
+        unpaid_leave_days: parseInt(document.getElementById('form-unpaid-days').value) || 0,
+        unpaid_leave_deduction: parseFloat(document.getElementById('form-unpaid-deduction').value) || 0,
+        kwsp: parseFloat(document.getElementById('form-kwsp').value) || 0,
+        socso: parseFloat(document.getElementById('form-socso').value) || 0,
+        eis: parseFloat(document.getElementById('form-eis').value) || 0,
+        other_deductions: parseFloat(document.getElementById('form-other').value) || 0,
+        updated_at: new Date().toISOString()
+      };
+
+      if (!editId) {
+          recordData.created_at = new Date().toISOString();
+      }
+
+      const recordId = editId || crypto.randomUUID();
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', recordId);
+
+      btnSave.disabled = true;
+      btnSave.innerHTML = `<div class="loader" style="border-width:3px;width:18px;height:18px;"></div> MENYIMPAN...`;
+
+      try {
+        await setDoc(docRef, recordData, { merge: true });
+        showToast(editId ? 'REKOD DIKEMASKINI KE AWAN' : 'REKOD DITAMBAH KE AWAN', 'success');
+        closeModal();
+      } catch (error) {
+        console.error("Save Error:", error);
+        showToast("GAGAL MENYIMPAN DATA: " + error.message, "error");
+      } finally {
+        btnSave.disabled = false;
+        btnSave.innerHTML = `SIMPAN`;
+      }
+    };
+
+    // Import Feb 2026 Data
+    window.importFeb2026Data = async function() {
+        if (!firebaseUser) return;
+        const btn = document.getElementById('btn-import');
+        btn.disabled = true;
+        btn.innerHTML = `<div class="loader" style="border-width:3px;width:16px;height:16px;"></div> MEMUAT NAIK...`;
+
         const febData = [
-            { empCode: 'MZBE012024', advance_payment: 700, kwsp: 198, basic_salary: 1800 },
-            { empCode: 'MZBE092022', advance_payment: 800, kwsp: 231, basic_salary: 2100 },
-            { empCode: 'MZBE102022', advance_payment: 800, kwsp: 220, basic_salary: 2000 },
-            { empCode: 'MZBE072022', advance_payment: 1000, kwsp: 253, basic_salary: 2300 },
-            { empCode: 'MZBE022024', advance_payment: 0, kwsp: 198, basic_salary: 1800 },
-            { empCode: 'MZBE082022', advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, basic_salary: 2300 },
-            { empCode: 'MZBE022025', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
-            { empCode: 'MZBE032025', advance_payment: 700, kwsp: 187, basic_salary: 1700 },
-            { empCode: 'MZBE042025', advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, basic_salary: 1700 },
-            { empCode: 'MZBEBOSS001', advance_payment: 0, kwsp: 352, basic_salary: 3500 }
+            { employee_code: 'MZBE012024', basic_salary: 1800, advance_payment: 700, kwsp: 198, ic_number: '040421110053' },
+            { employee_code: 'MZBE092022', basic_salary: 2100, advance_payment: 800, kwsp: 231, ic_number: '980416036979' },
+            { employee_code: 'MZBE102022', basic_salary: 2000, advance_payment: 800, kwsp: 220, ic_number: '000917110384' },
+            { employee_code: 'MZBE072022', basic_salary: 2300, advance_payment: 1000, kwsp: 253, ic_number: '971017385034' },
+            { employee_code: 'MZBE022024', basic_salary: 1800, advance_payment: 0, kwsp: 198, ic_number: '' },
+            { employee_code: 'MZBE082022', basic_salary: 2300, advance_payment: 1000, kwsp: 253, unpaid_leave_days: 4, unpaid_leave_deduction: 353.84, ic_number: '000417080975' },
+            { employee_code: 'MZBE022025', basic_salary: 1700, advance_payment: 700, kwsp: 187, ic_number: '070909030855' },
+            { employee_code: 'MZBE032025', basic_salary: 1700, advance_payment: 700, kwsp: 187, ic_number: '010815110403' },
+            { employee_code: 'MZBE042025', basic_salary: 1700, advance_payment: 0, kwsp: 187, unpaid_leave_days: 12, unpaid_leave_deduction: 784.80, ic_number: '930905115074' }
         ];
-        
+
         try {
             for (const data of febData) {
-                const recordId = `sal_${data.empCode}_2026_2`;
-                const emp = employees.find(e => e.code === data.empCode) || { name: 'Pekerja Tidak Diketahui', ic: '' };
-                const finalData = {
-                    empCode: data.empCode,
-                    empName: emp.name,
-                    icNumber: emp.ic || '',
-                    year: '2026',
-                    month: '2',
+                const emp = EMPLOYEES.find(e => e.code === data.employee_code) || {};
+                const recordData = {
+                    employee_code: data.employee_code.toUpperCase(),
+                    employee_name: (emp.name || '').toUpperCase(),
+                    department: (emp.dept || '').toUpperCase(),
+                    position: (emp.position || '').toUpperCase(),
+                    ic_number: (data.ic_number || '').toUpperCase(),
+                    month: 2,
+                    year: 2026,
                     basic_salary: data.basic_salary || 0,
-                    allowance: 0, ot_hours: 0, ot_rate: 10, bonus: 0,
+                    allowance: 0,
+                    oil_allowance: 0,
+                    ot_hours: 0,
+                    ot_rate: 10,
+                    bonus: 0,
                     advance_payment: data.advance_payment || 0,
-                    kwsp: data.kwsp || 0, socso: 0, eis: 0, other_deductions: 0, late_deduction: 0,
                     unpaid_leave_days: data.unpaid_leave_days || 0,
                     unpaid_leave_deduction: data.unpaid_leave_deduction || 0,
-                    updatedAt: new Date().toISOString()
+                    kwsp: data.kwsp || 0,
+                    socso: 0,
+                    eis: 0,
+                    other_deductions: 0,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
                 };
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', recordId), finalData, {merge:true});
+                
+                const recordId = `feb2026_${data.employee_code}`;
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', recordId);
+                await setDoc(docRef, recordData, { merge: true });
             }
-            showToast('Data gaji Februari 2026 berjaya diimport!', 'success');
-            setYear('2026'); setMonth('2');
-        } catch(err) {
-            showToast('Gagal memuat naik.', 'error');
+            showToast('DATA FEB 2026 BERJAYA DIIMPORT KE AWAN!', 'success');
+        } catch (error) {
+            console.error(error);
+            showToast('RALAT IMPORT: ' + error.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `📥 IMPORT DATA FEB 2026`;
+            
+            document.getElementById('filter-year').value = '2026';
+            document.getElementById('filter-month').value = '2';
+            window.applyFilters();
         }
     };
 
-    const deleteSalary = async (id) => {
-        if(window.confirm("Padam rekod ini?")) {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salaries', id));
-        }
+    // Delete Operations with Firestore
+    window.openDeleteModal = function(id) {
+      deleteTarget = id;
+      document.getElementById('modal-delete').classList.remove('hidden');
     };
 
-    const printSlip = (sal, empName, icNumber) => {
-        const gross = (sal?.basic_salary || 0) + (sal?.allowance || 0) + ((sal?.ot_hours || 0)*(sal?.ot_rate || 0)) + (sal?.bonus || 0);
-        const deduct = (sal?.kwsp || 0) + (sal?.socso || 0) + (sal?.eis || 0) + (sal?.other_deductions || 0) + (sal?.unpaid_leave_deduction || 0) + (sal?.late_deduction || 0) + (sal?.advance_payment || 0);
-        const html = `<html><head><title>Slip Gaji</title><style>body{font-family:sans-serif;padding:40px;color:#333;line-height:1.6} .row{display:flex;justify-content:space-between;border-bottom:1px dashed #ccc;padding:5px 0}</style></head><body><h2 style="text-align:center">MUIZ BANNER EMPIRE<br><small style="color:#666">Slip Gaji ${MONTHS[parseInt(sal.month)]} ${sal.year}</small></h2><p><b>Nama:</b> ${empName}<br><b>IC:</b> ${icNumber||'-'}</p><div style="display:flex;gap:20px"><div style="flex:1"><h3>Pendapatan</h3><div class="row"><span>Gaji Asas</span><span>RM ${(sal.basic_salary || 0).toFixed(2)}</span></div><div class="row"><span>Elaun/Bonus</span><span>RM ${((sal.allowance || 0)+(sal.bonus || 0)).toFixed(2)}</span></div><div class="row"><span>OT</span><span>RM ${((sal.ot_hours || 0)*(sal.ot_rate || 0)).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Kasar</b><b>RM ${gross.toFixed(2)}</b></div></div><div style="flex:1"><h3>Potongan</h3><div class="row"><span>KWSP/SOCSO/EIS</span><span>RM ${((sal.kwsp || 0)+(sal.socso || 0)+(sal.eis || 0)).toFixed(2)}</span></div><div class="row"><span>Cuti Tanpa Gaji</span><span>RM ${(sal.unpaid_leave_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Denda Lewat</span><span>RM ${(sal.late_deduction || 0).toFixed(2)}</span></div><div class="row"><span>Advance/Lain</span><span>RM ${((sal.advance_payment || 0)+(sal.other_deductions || 0)).toFixed(2)}</span></div><br><div class="row"><b>Jumlah Potongan</b><b>RM ${deduct.toFixed(2)}</b></div></div></div><h2 style="text-align:center;margin-top:40px;background:#eee;padding:15px">GAJI BERSIH: RM ${(gross-deduct).toFixed(2)}</h2></body></html>`;
-        const w = window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 500);
+    window.closeDeleteModal = function() {
+      deleteTarget = null;
+      document.getElementById('modal-delete').classList.add('hidden');
     };
 
-    return (
-        <div className="space-y-6">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border flex flex-wrap items-center justify-between gap-4">
-                <div className="flex gap-2">
-                    <select value={year} onChange={e=>setYear(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50"><option>2024</option><option>2025</option><option>2026</option></select>
-                    <select value={month} onChange={e=>setMonth(e.target.value)} className="p-2 border rounded-lg outline-none font-bold bg-slate-50">{MONTHS.map((m,i)=> i>0 ? <option key={i} value={i.toString()}>{m}</option> : null)}</select>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    <button onClick={()=>setShowReport(true)} className="px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition flex items-center gap-2"><IconChartBar size={16}/> Analisa</button>
-                    <button onClick={importFeb2026Data} className="px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition">📥 Data Feb 2026</button>
-                    <button onClick={importPukal} className="px-4 py-2 bg-amber-50 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition">📥 Bina Pukal (Auto)</button>
-                    <button onClick={openAdd} className="px-4 py-2 bg-emerald-50 text-emerald-600 font-bold rounded-lg hover:bg-emerald-100 transition">➕ Tambah Manual</button>
-                </div>
+    window.confirmDelete = async function() {
+      if (!firebaseUser || !deleteTarget) return;
+
+      const btnDel = document.getElementById('btn-confirm-delete');
+      const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', deleteTarget);
+
+      btnDel.disabled = true;
+      btnDel.innerHTML = `<div class="loader" style="border-width:3px;width:18px;height:18px;"></div> MEMADAM...`;
+
+      try {
+          await deleteDoc(docRef);
+          showToast('REKOD BERJAYA DIPADAM', 'success');
+          closeDeleteModal();
+      } catch (error) {
+          console.error("Delete Error:", error);
+          showToast('GAGAL MEMADAM DATA.', 'error');
+      } finally {
+          btnDel.disabled = false;
+          btnDel.innerHTML = `PADAM`;
+      }
+    };
+
+    // IC Modal Functions with Firestore
+    window.openICModal = function() {
+      const userRecords = allRecords.filter(r => r.employee_code === currentUser.code);
+      const existingIC = userRecords.length > 0 ? userRecords[0].ic_number : '';
+      document.getElementById('form-ic').value = existingIC || '';
+      document.getElementById('modal-ic').classList.remove('hidden');
+    };
+
+    window.closeICModal = function() {
+      document.getElementById('modal-ic').classList.add('hidden');
+    };
+
+    window.saveIC = async function() {
+      if(!firebaseUser) return;
+      
+      const newIC = document.getElementById('form-ic').value.trim().toUpperCase();
+      const userRecords = allRecords.filter(r => r.employee_code === currentUser.code);
+
+      if (userRecords.length === 0) {
+        showToast('TIADA REKOD GAJI UNTUK DIKEMASKINI SETAKAT INI', 'error');
+        return;
+      }
+
+      const btnSave = document.getElementById('btn-save-ic');
+      btnSave.disabled = true;
+      btnSave.innerHTML = `<div class="loader" style="border-width:3px;width:18px;height:18px;"></div> MENYIMPAN...`;
+
+      try {
+          // Update all records for this user in Firestore
+          for(const record of userRecords) {
+              const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salary_records', record.__backendId);
+              await setDoc(docRef, { ic_number: newIC }, { merge: true });
+          }
+          showToast('NO. KP BERJAYA DIKEMASKINI KE AWAN', 'success');
+          closeICModal();
+      } catch(error) {
+          console.error("Update IC Error:", error);
+          showToast("GAGAL MENGEMASKINI NO KP.", "error");
+      } finally {
+          btnSave.disabled = false;
+          btnSave.innerHTML = `SIMPAN`;
+      }
+    };
+
+    // HTML Generate Slip Gaji
+    function generateSlipHTML(record) {
+      const emp = EMPLOYEES.find(e => e.code === record.employee_code) || {};
+      const totalAllowance = (record.allowance || 0) + (record.oil_allowance || 0);
+      const otAmount = (record.ot_hours || 0) * (record.ot_rate || 10);
+      const grossIncome = (record.basic_salary || 0) + totalAllowance + otAmount + (record.bonus || 0);
+      
+      const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0);
+      const netSalary = grossIncome - totalDeductions;
+
+      return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>SLIP GAJI - ${MONTHS[record.month]} ${record.year}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; text-transform: uppercase; color: #1e293b; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #f59e0b; padding-bottom: 25px; }
+            .logo { margin-bottom: 15px; }
+            .logo img { max-height: 80px; max-width: 250px; object-fit: contain; }
+            .company-name { font-size: 26px; font-weight: 800; color: #0f172a; letter-spacing: 1px; margin-bottom: 5px; }
+            .slip-title { font-size: 16px; color: #64748b; font-weight: 600; letter-spacing: 2px; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 35px; }
+            .info-box { background: #f8fafc; padding: 18px; border-radius: 10px; border: 1px solid #e2e8f0; }
+            .info-label { font-size: 11px; color: #64748b; margin-bottom: 6px; font-weight: 800; letter-spacing: 1px;}
+            .info-value { font-size: 15px; font-weight: 700; color: #0f172a; }
+            .section { margin-bottom: 25px; }
+            .section-title { font-size: 15px; font-weight: 800; color: #0f172a; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; letter-spacing: 1px; display: flex; align-items: center; gap: 8px;}
+            .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #cbd5e1; }
+            .row:last-child { border-bottom: none; }
+            .row-label { color: #475569; font-weight: 600; font-size: 14px; }
+            .row-value { font-weight: 700; color: #0f172a; font-size: 14px; }
+            .total-box { background: #0f172a; color: white; padding: 25px; border-radius: 12px; text-align: center; margin-top: 30px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+            .total-label { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #cbd5e1; margin-bottom: 5px; }
+            .total-value { font-size: 36px; font-weight: 900; color: #10b981; }
+            .footer { text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+            .highlight { color: #ef4444; }
+            .highlight-green { color: #10b981; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">
+              <img src="logo.png" alt="MUIZ BANNER EMPIRE LOGO" onerror="this.style.display='none'">
             </div>
+            <div class="company-name">MUIZ BANNER EMPIRE</div>
+            <div class="slip-title">SLIP GAJI - ${MONTHS[record.month]} ${record.year}</div>
+          </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredSalaries.length === 0 ? <div className="col-span-full text-center py-10 text-slate-400">Tiada rekod gaji untuk bulan ini. Tekan "Bina Pukal" untuk jana secara automatik.</div> : 
-                filteredSalaries.map(s => {
-                    const gross = (s?.basic_salary || 0) + (s?.allowance || 0) + ((s?.ot_hours || 0)*(s?.ot_rate || 0)) + (s?.bonus || 0);
-                    const deduct = (s?.kwsp || 0) + (s?.socso || 0) + (s?.eis || 0) + (s?.other_deductions || 0) + (s?.unpaid_leave_deduction || 0) + (s?.late_deduction || 0) + (s?.advance_payment || 0);
-                    const net = gross - deduct;
-                    const emp = employees.find(e => e.code === s.empCode);
-                    const displayName = emp ? emp.name : 'Pekerja Tidak Diketahui';
-                    
-                    return (
-                        <div key={s.id} className="bg-white p-5 rounded-2xl shadow-sm border relative">
-                            <div className="flex justify-between items-start mb-4"><h3 className="font-bold text-slate-800 uppercase text-sm leading-tight pr-2">{displayName}</h3><button onClick={()=>printSlip(s, displayName, emp?.ic)} className="text-blue-500 hover:text-blue-700 p-1 bg-blue-50 rounded"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg></button></div>
-                            <div className="bg-emerald-50 p-3 rounded-xl mb-4 text-center border border-emerald-100"><p className="text-[10px] text-emerald-600 font-bold uppercase tracking-wider">Gaji Bersih</p><p className="text-2xl font-black text-emerald-700">RM {net.toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                            <div className="flex justify-between text-xs text-slate-500 mb-4 px-1"><span>Kasar: RM {gross.toFixed(2)}</span><span className="text-rose-500">Tolak: RM {deduct.toFixed(2)}</span></div>
-                            <div className="grid grid-cols-2 gap-2 mt-4">
-                                <button onClick={()=>openEdit(s)} className="py-2 bg-slate-100 rounded-lg text-xs font-bold hover:bg-slate-200 text-slate-700">Edit</button>
-                                <button onClick={()=>deleteSalary(s.id)} className="py-2 bg-rose-50 text-rose-600 rounded-lg text-xs font-bold hover:bg-rose-100">Padam</button>
-                            </div>
-                        </div>
-                    )
-                })}
+          <div class="info-grid">
+            <div class="info-box">
+              <div class="info-label">NAMA PEKERJA</div>
+              <div class="info-value">${(emp.name || record.employee_name).toUpperCase()}</div>
             </div>
+            <div class="info-box">
+              <div class="info-label">KOD PEKERJA</div>
+              <div class="info-value">${record.employee_code.toUpperCase()}</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">JABATAN</div>
+              <div class="info-value">${(emp.dept || record.department).toUpperCase()}</div>
+            </div>
+            <div class="info-box">
+              <div class="info-label">JAWATAN</div>
+              <div class="info-value">${(emp.position || record.position).toUpperCase()}</div>
+            </div>
+            ${record.ic_number ? `
+            <div class="info-box" style="grid-column: span 2;">
+              <div class="info-label">NO. KAD PENGENALAN</div>
+              <div class="info-value">${record.ic_number.toUpperCase()}</div>
+            </div>
+            ` : ''}
+          </div>
 
-            {modalForm && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-fade shadow-2xl">
-                        <div className="sticky top-0 bg-white px-6 py-4 border-b flex justify-between items-center z-10"><h2 className="font-bold text-lg text-slate-800">{modalForm.mode==='add'?'Tambah':'Edit'} Gaji</h2><button type="button" onClick={closeM} className="p-2 bg-slate-100 rounded-full text-slate-600">✕</button></div>
-                        <form onSubmit={saveSalary} className="p-6 space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {modalForm.mode === 'add' && <div><label className="text-xs font-bold text-slate-500 block mb-1">Pekerja</label><select className="w-full p-2 border rounded outline-none font-bold bg-slate-50" value={modalForm.data.empCode} onChange={e=>handleFormChange(e, 'empCode')}>{employees.filter(e=>(e?.code || '')!=='ADMIN').map(e=><option key={e.code} value={e.code}>{e.name}</option>)}</select></div>}
-                                <div className="col-span-full"><h3 className="bg-slate-100 p-2 rounded text-sm font-bold mt-2">💰 Pendapatan</h3></div>
-                                <div>
-                                    <label className="text-xs font-bold text-slate-500 block">Gaji Asas (RM)</label>
-                                    <input type="number" step="0.01" className="w-full p-2 border rounded font-bold" value={modalForm.data.basic_salary} onChange={e=>handleFormChange(e, 'basic_salary')} required/>
-                                    <p className="text-[10px] text-blue-600 font-bold mt-1">Kadar Sehari: RM {(parseFloat(modalForm.data.basic_salary||0)/26).toFixed(2)}</p>
-                                </div>
-                                <div><label className="text-xs font-bold text-slate-500 block">Elaun / Bonus (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded" value={modalForm.data.allowance} onChange={e=>handleFormChange(e, 'allowance')}/></div>
-                                <div><label className="text-xs font-bold text-slate-500 block">Jam OT</label><input type="number" step="0.5" className="w-full p-2 border rounded" value={modalForm.data.ot_hours} onChange={e=>handleFormChange(e, 'ot_hours')}/></div>
-                                <div><label className="text-xs font-bold text-slate-500 block">Kadar OT (RM/jam)</label><input type="number" step="0.01" className="w-full p-2 border rounded" value={modalForm.data.ot_rate} onChange={e=>handleFormChange(e, 'ot_rate')}/></div>
-                                
-                                <div className="col-span-full"><h3 className="bg-slate-100 p-2 rounded text-sm font-bold mt-2">📉 Potongan & Penalti</h3></div>
-                                <div><label className="text-xs font-bold text-slate-500 block">KWSP (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded" value={modalForm.data.kwsp} onChange={e=>handleFormChange(e, 'kwsp')}/></div>
-                                <div><label className="text-xs font-bold text-slate-500 block">Advance (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded text-rose-600 bg-rose-50" value={modalForm.data.advance_payment} onChange={e=>handleFormChange(e, 'advance_payment')}/></div>
-                                <div><label className="text-xs font-bold text-slate-500 block">Lain-lain (SOCSO/EIS) (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded text-rose-600 bg-rose-50" value={modalForm.data.other_deductions} onChange={e=>handleFormChange(e, 'other_deductions')}/></div>
-                                <div><label className="text-xs font-bold text-slate-500 block">Denda Lewat (RM)</label><input type="number" step="0.01" className="w-full p-2 border rounded text-rose-600 bg-rose-50 font-bold" value={modalForm.data.late_deduction} onChange={e=>handleFormChange(e, 'late_deduction')}/></div>
-                                <div><label className="text-xs font-bold text-slate-500 block">Hari Cuti Tanpa Gaji</label><input type="number" min="0" className="w-full p-2 border rounded bg-slate-50" value={modalForm.data.unpaid_leave_days} onChange={e=>handleFormChange(e, 'unpaid_leave_days')}/></div>
-                                <div><label className="text-xs font-bold text-slate-500 block">Potongan Cuti (RM) - Auto</label><input type="number" step="0.01" readOnly className="w-full p-2 border rounded text-rose-600 bg-slate-100 font-bold cursor-not-allowed" value={modalForm.data.unpaid_leave_deduction} /></div>
-                            </div>
-                            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition">Simpan Rekod Gaji</button>
-                        </form>
-                    </div>
-                </div>
-            )}
+          <div class="section">
+            <div class="section-title"><span>💰 PENDAPATAN</span></div>
+            <div class="row"><span class="row-label">GAJI ASAS</span><span class="row-value">RM ${(record.basic_salary || 0).toFixed(2)}</span></div>
+            ${record.allowance > 0 ? `<div class="row"><span class="row-label">ELAUN BIASA</span><span class="row-value">RM ${(record.allowance || 0).toFixed(2)}</span></div>` : ''}
+            ${record.oil_allowance > 0 ? `<div class="row"><span class="row-label">ELAUN MINYAK</span><span class="row-value">RM ${(record.oil_allowance || 0).toFixed(2)}</span></div>` : ''}
+            ${record.ot_hours > 0 ? `<div class="row"><span class="row-label">OT (${record.ot_hours || 0} JAM × RM${(record.ot_rate || 10).toFixed(2)})</span><span class="row-value">RM ${otAmount.toFixed(2)}</span></div>` : ''}
+            ${record.bonus > 0 ? `<div class="row"><span class="row-label">BONUS</span><span class="row-value">RM ${(record.bonus || 0).toFixed(2)}</span></div>` : ''}
+            ${record.advance_payment > 0 ? `<div class="row"><span class="row-label">BAYARAN PENDAHULUAN</span><span class="row-value highlight">-RM ${(record.advance_payment || 0).toFixed(2)}</span></div>` : ''}
+            <div class="row" style="font-weight: 800; border-top: 2px solid #cbd5e1; padding-top: 15px; margin-top: 5px;"><span class="row-label" style="color:#0f172a">JUMLAH PENDAPATAN</span><span class="row-value highlight-green">RM ${grossIncome.toFixed(2)}</span></div>
+          </div>
 
-            {/* Modal Laporan Analisa */}
-            {showReport && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-fade shadow-2xl p-6">
-                        <div className="flex justify-between items-center mb-6"><h2 className="font-black text-2xl text-slate-800">📊 Laporan {year}</h2><button onClick={()=>setShowReport(false)} className="p-2 bg-slate-100 rounded-full">✕</button></div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                            <div className="bg-blue-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-blue-600 uppercase">J. Kasar Setahun</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+(s?.basic_salary||0)+(s?.allowance||0)+((s?.ot_hours||0)*(s?.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                            <div className="bg-emerald-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-emerald-600 uppercase">J. Bersih Setahun</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+((s?.basic_salary||0)+(s?.allowance||0)+((s?.ot_hours||0)*(s?.ot_rate||0))-((s?.kwsp||0)+(s?.socso||0)+(s?.eis||0)+(s?.other_deductions||0)+(s?.unpaid_leave_deduction||0)+(s?.advance_payment||0)+(s?.late_deduction||0))),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                            <div className="bg-rose-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-rose-600 uppercase">J. Potongan KWSP</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+(s?.kwsp||0),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                            <div className="bg-amber-50 p-4 rounded-xl"><p className="text-[10px] font-bold text-amber-600 uppercase">J. Bayaran OT</p><p className="text-lg font-black">RM {salaries.filter(s=>(s?.year || '')===year).reduce((sum,s)=>sum+((s?.ot_hours||0)*(s?.ot_rate||0)),0).toLocaleString('ms-MY',{minimumFractionDigits:2})}</p></div>
-                        </div>
-                        <p className="text-sm text-center text-slate-500 italic">Gunakan sistem luaran untuk cetakan terperinci.</p>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
+          <div class="section">
+            <div class="section-title"><span>📉 POTONGAN</span></div>
+            <div class="row"><span class="row-label">KWSP</span><span class="row-value">RM ${(record.kwsp || 0).toFixed(2)}</span></div>
+            ${record.socso > 0 ? `<div class="row"><span class="row-label">SOCSO</span><span class="row-value">RM ${(record.socso || 0).toFixed(2)}</span></div>` : ''}
+            ${record.eis > 0 ? `<div class="row"><span class="row-label">EIS</span><span class="row-value">RM ${(record.eis || 0).toFixed(2)}</span></div>` : ''}
+            ${record.other_deductions > 0 ? `<div class="row"><span class="row-label">POTONGAN LAIN</span><span class="row-value">RM ${(record.other_deductions || 0).toFixed(2)}</span></div>` : ''}
+            ${record.unpaid_leave_days > 0 ? `
+            <div class="row"><span class="row-label">CUTI TANPA GAJI (${record.unpaid_leave_days} HARI)</span><span class="row-value">RM ${(record.unpaid_leave_deduction || 0).toFixed(2)}</span></div>
+            ` : ''}
+            <div class="row" style="font-weight: 800; border-top: 2px solid #cbd5e1; padding-top: 15px; margin-top: 5px;"><span class="row-label" style="color:#0f172a">JUMLAH POTONGAN</span><span class="row-value highlight">RM ${totalDeductions.toFixed(2)}</span></div>
+          </div>
 
-function ModuleAdmin({ employees, settings, showToast }) {
-    const [empForm, setEmpForm] = useState(null);
+          <div class="total-box">
+            <div class="total-label">GAJI BERSIH</div>
+            <div class="total-value">RM ${netSalary.toLocaleString('ms-MY', { minimumFractionDigits: 2 })}</div>
+          </div>
 
-    const saveSettings = async (time, bypass) => {
-        try {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', 'config'), { clockOutTime: time, bypassGps: bypass }, {merge:true});
-            showToast("Tetapan dikemaskini", "success");
-        } catch(e) { showToast("Gagal menyimpan tetapan", "error"); }
+          <div class="footer">
+            <p>SLIP GAJI INI DIJANA SECARA AUTOMATIK OLEH SISTEM PENGURUSAN GAJI MUIZ BANNER EMPIRE</p>
+            <p>DIJANA PADA: ${new Date().toLocaleDateString('ms-MY')} ${new Date().toLocaleTimeString('ms-MY')}</p>
+          </div>
+        </body>
+        </html>
+      `;
+    }
+
+    // Print & Download Operations
+    window.printSlip = function(id) {
+      const record = allRecords.find(r => r.__backendId === id);
+      if (!record) return;
+
+      const slipHTML = generateSlipHTML(record);
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(slipHTML);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500); // Masa tambahan untuk logo dimuatkan sebelum cetak
     };
 
-    const saveEmp = async (e) => {
-        e.preventDefault();
-        try {
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', empForm.code.toUpperCase()), { ...empForm, code: empForm.code.toUpperCase(), basic: parseFloat(empForm.basic)||0 }, {merge:true});
-            showToast("Profil Pekerja Disimpan", "success"); setEmpForm(null);
-        } catch(err) { showToast("Gagal menyimpan profil", "error"); }
+    window.downloadSlip = function(id) {
+      const record = allRecords.find(r => r.__backendId === id);
+      if (!record) return;
+
+      const slipHTML = generateSlipHTML(record);
+      const blob = new Blob([slipHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SLIP_GAJI_${record.employee_code.toUpperCase()}_${MONTHS[record.month]}_${record.year}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('SLIP GAJI BERJAYA DIMUAT TURUN', 'success');
     };
 
-    const deleteEmp = async (code) => {
-        if(window.confirm("Padam pekerja ini?")) {
-            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', code));
-        }
-    };
+    // Toast UI Component
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] z-50 animate-fade font-bold tracking-wide border-l-4 transition-all duration-300 uppercase';
+      
+      if (type === 'success') {
+        toast.classList.add('bg-emerald-500', 'text-white', 'border-emerald-700');
+      } else if (type === 'error') {
+        toast.classList.add('bg-red-500', 'text-white', 'border-red-700');
+      } else {
+        toast.classList.add('bg-slate-800', 'text-white', 'border-slate-900');
+      }
+      
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
 
-    return (
-        <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border space-y-6">
-                <h2 className="font-bold text-lg flex items-center gap-2"><IconSettings size={20}/> Tetapan Sistem</h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <p className="font-bold text-slate-800 text-sm mb-1">Waktu Balik Rasmi</p>
-                        <p className="text-xs text-slate-500 mb-3">Waktu minimum untuk Clock Out.</p>
-                        <select value={settings.clockOutTime || '17:00'} onChange={e=>saveSettings(e.target.value, settings.bypassGps)} className="w-full p-2 font-bold bg-white border rounded-lg outline-none focus:border-blue-500"><option value="16:30">4:30 PM</option><option value="17:00">5:00 PM</option></select>
-                    </div>
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                        <p className="font-bold text-slate-800 text-sm mb-1">Bypass GPS</p>
-                        <p className="text-xs text-slate-500 mb-3">Benarkan pekerja Clock In tanpa sah lokasi.</p>
-                        <button onClick={()=>saveSettings(settings.clockOutTime, !settings.bypassGps)} className={`w-full py-2 rounded-lg font-bold text-sm transition ${settings.bypassGps ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-600'}`}>{settings.bypassGps ? 'GPS DIBENARKAN (Aktif)' : 'GPS DIWAJIBKAN (Mati)'}</button>
-                    </div>
-                </div>
-            </div>
+    // Event Listeners for Login
+    document.getElementById('login-password').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') window.handleLogin();
+    });
+    document.getElementById('login-username').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('login-password').focus();
+    });
 
-            <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-                <div className="p-4 bg-slate-50 border-b flex justify-between items-center"><h3 className="font-bold text-slate-700">Senarai Pekerja</h3><button onClick={()=>setEmpForm({code:'',name:'',dept:'',position:'',basic:0,ic:''})} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-blue-700">+ Tambah Pekerja</button></div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-white text-xs text-slate-500 uppercase border-b"><tr><th className="p-4">Kod Login</th><th className="p-4">Nama</th><th className="p-4">Jawatan</th><th className="p-4">Gaji Asas</th><th className="p-4">Tindakan</th></tr></thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {employees.map(e => (
-                                <tr key={e.code} className="hover:bg-slate-50">
-                                    <td className="p-4 font-mono font-bold text-slate-600">{e?.code || ''}</td>
-                                    <td className="p-4 font-bold">{e?.name || ''}</td>
-                                    <td className="p-4 text-xs">{e?.position || ''} ({e?.dept || ''})</td>
-                                    <td className="p-4 text-emerald-600 font-bold">RM {e?.basic || 0}</td>
-                                    <td className="p-4 flex gap-2">
-                                        <button onClick={()=>setEmpForm(e)} className="px-3 py-1 bg-slate-200 hover:bg-slate-300 rounded text-xs font-bold text-slate-700">Edit</button>
-                                        {(e?.code || '') !== 'ADMIN' && <button onClick={()=>deleteEmp(e.code)} className="px-3 py-1 bg-rose-50 hover:bg-rose-100 rounded text-xs font-bold text-rose-600">Padam</button>}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {empForm && (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-fade">
-                        <h2 className="font-black text-xl mb-4 border-b pb-2 text-slate-800">Profil Pekerja</h2>
-                        <form onSubmit={saveEmp} className="space-y-4">
-                            <div><label className="text-xs font-bold text-slate-600">Kod Login (Unik)</label><input type="text" disabled={empForm.code !== '' && employees.some(e=>(e?.code || '')===empForm.code)} value={empForm.code} onChange={e=>setEmpForm({...empForm,code:e.target.value})} className="w-full p-2 border rounded uppercase bg-slate-50 font-mono focus:border-blue-500 outline-none" required/></div>
-                            <div><label className="text-xs font-bold text-slate-600">Nama Penuh</label><input type="text" value={empForm.name} onChange={e=>setEmpForm({...empForm,name:e.target.value})} className="w-full p-2 border rounded uppercase focus:border-blue-500 outline-none" required/></div>
-                            <div><label className="text-xs font-bold text-slate-600">No IC</label><input type="text" value={empForm.ic} onChange={e=>setEmpForm({...empForm,ic:e.target.value})} className="w-full p-2 border rounded focus:border-blue-500 outline-none"/></div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div><label className="text-xs font-bold text-slate-600">Jabatan</label><input type="text" value={empForm.dept} onChange={e=>setEmpForm({...empForm,dept:e.target.value})} className="w-full p-2 border rounded focus:border-blue-500 outline-none" required/></div>
-                                <div><label className="text-xs font-bold text-slate-600">Jawatan</label><input type="text" value={empForm.position} onChange={e=>setEmpForm({...empForm,position:e.target.value})} className="w-full p-2 border rounded focus:border-blue-500 outline-none" required/></div>
-                            </div>
-                            <div><label className="text-xs font-bold text-emerald-600">Gaji Asas Bulanan (RM)</label><input type="number" step="0.01" value={empForm.basic} onChange={e=>setEmpForm({...empForm,basic:e.target.value})} className="w-full p-2 border-2 border-emerald-200 rounded outline-none focus:border-emerald-500 font-bold" required/></div>
-                            <div className="flex gap-2 pt-4"><button type="submit" className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow">Simpan</button><button type="button" onClick={()=>setEmpForm(null)} className="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Batal</button></div>
-                        </form>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
+  </script>
+</body>
+</html>
