@@ -226,12 +226,12 @@
                 }
             };
 
-            // FUNGSI INI AKAN MENULIS SEMULA NAMA-NAMA YANG HILANG SEBELUM INI KE DALAM DATABASE
-            const importFeb2026Data = async () => {
-                if(!window.confirm("Anda pasti mahu import data spesifik Gaji Februari 2026? Ia akan menggantikan rekod semasa dan membetulkan nama yang hilang.")) return;
-                showToast('Memuat naik data Februari 2026...', 'info');
+            // FUNGSI INI AKAN MENJANA DATA STANDARD KE DALAM BULAN & TAHUN YANG DIPILIH
+            const importStandardData = async () => {
+                if(!window.confirm(`Anda pasti mahu jana data gaji standard untuk bulan ${MONTHS[parseInt(month)]} ${year}? Ia akan menggantikan rekod semasa.`)) return;
+                showToast(`Menjana data gaji ${MONTHS[parseInt(month)]}...`, 'info');
                 
-                const febData = [
+                const standardData = [
                     { empCode: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', ic: '040421110053', advance_payment: 700, kwsp: 198, basic_salary: 1800 },
                     { empCode: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', ic: '980416036979', advance_payment: 800, kwsp: 231, basic_salary: 2100 },
                     { empCode: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', ic: '000917110384', advance_payment: 800, kwsp: 220, basic_salary: 2000 },
@@ -245,16 +245,16 @@
                 ];
                 
                 try {
-                    for (const data of febData) {
-                        const recordId = `sal_${data.empCode}_2026_2`;
+                    for (const data of standardData) {
+                        const recordId = `sal_${data.empCode}_${year}_${month}`;
                         const finalData = {
                             empCode: data.empCode,
-                            empName: data.name, // Hardcode nama sebenar supaya ia ter-reset dalam DB
+                            empName: data.name, 
                             icNumber: data.ic,
                             dept: data.dept,
                             position: data.position,
-                            year: '2026',
-                            month: '2',
+                            year: year,
+                            month: month,
                             basic_salary: data.basic_salary || 0,
                             allowance: 0, ot_hours: 0, ot_rate: 10, bonus: 0,
                             advance_payment: data.advance_payment || 0,
@@ -265,9 +265,9 @@
                         };
                         await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', recordId), finalData, {merge:true});
                     }
-                    showToast('Data gaji Februari 2026 berjaya diimport!', 'success');
-                    setYear('2026'); setMonth('2');
+                    showToast(`Data gaji ${MONTHS[parseInt(month)]} ${year} berjaya dijana!`, 'success');
                 } catch(err) {
+                    console.warn("Gagal import:", err.message);
                     showToast('Gagal memuat naik. Periksa Firebase Rules.', 'error');
                 }
             };
@@ -302,15 +302,23 @@
                         {isAdmin && (
                             <div className="flex flex-wrap gap-2 w-full md:w-auto">
                                 <button onClick={()=>setShowReport(true)} className="flex-1 md:flex-none px-4 py-2 bg-slate-800 text-white font-bold rounded-lg hover:bg-slate-900 transition flex items-center justify-center gap-2"><IconChartBar size={16}/> Laporan</button>
-                                <button onClick={importFeb2026Data} className="flex-1 md:flex-none px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition whitespace-nowrap">📥 Data Feb 2026</button>
-                                <button onClick={importPukal} className="flex-1 md:flex-none px-4 py-2 bg-amber-50 text-amber-600 font-bold rounded-lg hover:bg-amber-100 transition whitespace-nowrap">📥 Templat Kosong</button>
-                                <button onClick={openAdd} className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition flex items-center justify-center gap-1">➕ Tambah</button>
+                                <button onClick={importStandardData} className="flex-1 md:flex-none px-4 py-2 bg-blue-50 text-blue-600 font-bold rounded-lg hover:bg-blue-100 transition whitespace-nowrap">📥 Jana Data Standard</button>
+                                <button onClick={openAdd} className="flex-1 md:flex-none px-4 py-2 bg-emerald-500 text-white font-bold rounded-lg hover:bg-emerald-600 transition flex items-center justify-center gap-1">➕ Tambah Manual</button>
                             </div>
                         )}
                     </div>
 
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {filteredSalaries.length === 0 ? <div className="col-span-full text-center py-12 bg-white rounded-3xl border border-dashed border-slate-300 text-slate-400">Tiada rekod slip gaji untuk bulan yang dipilih.</div> : 
+                        {filteredSalaries.length === 0 ? (
+                            <div className="col-span-full text-center py-12 bg-white rounded-3xl border border-dashed border-slate-300">
+                                <p className="text-slate-500 font-medium mb-4">Tiada rekod slip gaji untuk bulan {MONTHS[parseInt(month)]} {year}.</p>
+                                {isAdmin && (
+                                    <button onClick={importStandardData} className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow-lg shadow-blue-600/30 hover:bg-blue-700 transition">
+                                        📥 Jana Data Gaji Standard (Untuk Bulan Ini)
+                                    </button>
+                                )}
+                            </div>
+                        ) : 
                         filteredSalaries.map(s => {
                             const gross = (s?.basic_salary || 0) + (s?.allowance || 0) + ((s?.ot_hours || 0)*(s?.ot_rate || 0)) + (s?.bonus || 0);
                             const deduct = (s?.kwsp || 0) + (s?.socso || 0) + (s?.eis || 0) + (s?.other_deductions || 0) + (s?.unpaid_leave_deduction || 0) + (s?.late_deduction || 0) + (s?.advance_payment || 0);
@@ -445,6 +453,7 @@
                     await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', empForm.code.toUpperCase()), { ...empForm, code: empForm.code.toUpperCase(), name: empForm.name.toUpperCase(), basic: parseFloat(empForm.basic)||0 }, {merge:true});
                     showToast("Profil Pekerja Disimpan", "success"); setEmpForm(null);
                 } catch(err) { 
+                    console.warn("Gagal simpan pekerja (Luar Talian):", err.message);
                     showToast("Gagal menyimpan profil. Sila periksa Rules Firebase.", "error"); 
                 }
             };
@@ -454,6 +463,7 @@
                     try {
                         await window.fbModules.deleteDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', code));
                     } catch(err) {
+                        console.warn("Gagal padam pekerja (Luar Talian):", err.message);
                         showToast("Gagal memadam. Sila periksa Rules Firebase.", "error"); 
                     }
                 }
@@ -558,7 +568,7 @@
                             await signInAnonymously(auth);
                         }
                     } catch (e) { 
-                        if(isMounted) console.error("Auth Fail:", e); 
+                        if(isMounted) console.warn("Auth Fail:", e.message); 
                     }
                 };
                 initAuth();
@@ -605,7 +615,7 @@
                         },
                         err => {
                             if(isMounted) {
-                                console.error("Permission Denied (Emp):", err);
+                                console.warn("Pangkalan data Disekat (Emp):", err.message);
                                 setEmployees(DEFAULT_EMPLOYEES);
                                 setIsDbReady(true);
                             }
@@ -617,12 +627,12 @@
                             if(isMounted) setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() })));
                         },
                         err => {
-                            if(isMounted) console.error("Permission Denied (Sal):", err);
+                            if(isMounted) console.warn("Pangkalan data Disekat (Sal):", err.message);
                         }
                     );
                 } catch(error) {
                     if(isMounted) {
-                        console.error("Setup Listeners Failed:", error);
+                        console.warn("Gagal Membina Pendengar Database:", error.message);
                         setEmployees(DEFAULT_EMPLOYEES);
                         setIsDbReady(true);
                     }
