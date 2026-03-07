@@ -35,7 +35,6 @@
         const { useState, useEffect, useCallback } = React;
 
         // --- KONFIGURASI GLOBAL ---
-        // PENTING: Gunakan __app_id untuk memastikan kebenaran pangkalan data selari dengan persekitaran editor
         const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'sistemgajimzbe'; 
         const MONTHS = ['', 'Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
 
@@ -128,7 +127,6 @@
             const [modalForm, setModalForm] = useState(null); 
             const [showReport, setShowReport] = useState(false);
             
-            // Jika bukan admin, hanya tunjuk gaji sendiri
             const filteredSalaries = salaries.filter(s => (s?.year || '') === year && (s?.month || '') === month && (isAdmin || s?.empCode === user.code));
 
             const getDefaultsFromEmp = (empCode) => {
@@ -195,7 +193,7 @@
                     showToast('Rekod Gaji Disimpan!', 'success'); 
                     closeM();
                 } catch(err) {
-                    showToast('Gagal menyimpan rekod gaji.', 'error');
+                    showToast('Gagal menyimpan rekod. Sila periksa Rules Firebase.', 'error');
                 }
             };
 
@@ -210,7 +208,7 @@
                     }
                     showToast('Selesai dibina!', 'success');
                 } catch(err) {
-                    showToast('Ralat membina rekod.', 'error');
+                    showToast('Ralat membina rekod. Periksa Rules Firebase.', 'error');
                 }
             };
 
@@ -254,13 +252,17 @@
                     showToast('Data gaji Februari 2026 berjaya diimport!', 'success');
                     setYear('2026'); setMonth('2');
                 } catch(err) {
-                    showToast('Gagal memuat naik.', 'error');
+                    showToast('Gagal memuat naik. Periksa Firebase Rules.', 'error');
                 }
             };
 
             const deleteSalary = async (id) => {
                 if(window.confirm("Padam rekod ini?")) {
-                    await window.fbModules.deleteDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id));
+                    try {
+                        await window.fbModules.deleteDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'salaries', id));
+                    } catch(e) {
+                        showToast("Gagal memadam. Periksa Firebase Rules.", "error");
+                    }
                 }
             };
 
@@ -418,14 +420,20 @@
             const saveEmp = async (e) => {
                 e.preventDefault();
                 try {
-                    await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', empForm.code.toUpperCase()), { ...empForm, code: empForm.code.toUpperCase(), basic: parseFloat(empForm.basic)||0 }, {merge:true});
+                    await window.fbModules.setDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', empForm.code.toUpperCase()), { ...empForm, code: empForm.code.toUpperCase(), name: empForm.name.toUpperCase(), basic: parseFloat(empForm.basic)||0 }, {merge:true});
                     showToast("Profil Pekerja Disimpan", "success"); setEmpForm(null);
-                } catch(err) { showToast("Gagal menyimpan profil", "error"); }
+                } catch(err) { 
+                    showToast("Gagal menyimpan profil. Sila periksa Rules Firebase.", "error"); 
+                }
             };
 
             const deleteEmp = async (code) => {
                 if(window.confirm("Padam pekerja ini dari sistem?")) {
-                    await window.fbModules.deleteDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', code));
+                    try {
+                        await window.fbModules.deleteDoc(window.fbModules.doc(db, 'artifacts', APP_ID, 'public', 'data', 'employees', code));
+                    } catch(err) {
+                        showToast("Gagal memadam. Sila periksa Rules Firebase.", "error"); 
+                    }
                 }
             };
 
@@ -445,13 +453,13 @@
                                     {employees.map(e => (
                                         <tr key={e.code} className="hover:bg-slate-50/50 transition">
                                             <td className="p-4 font-mono font-bold text-slate-500">{e?.code || ''}</td>
-                                            <td className="p-4 font-bold text-slate-800">{e?.name || ''}</td>
+                                            <td className="p-4 font-bold text-slate-800 uppercase">{e?.name || ''}</td>
                                             <td className="p-4 text-xs font-medium text-slate-600">{e?.position || '-'} <br/><span className="text-blue-500">{e?.dept || '-'}</span></td>
                                             <td className="p-4 text-emerald-600 font-black">RM {e?.basic || 0}</td>
                                             <td className="p-4">
                                                 <div className="flex gap-2 justify-end">
-                                                    <button onClick={()=>setEmpForm(e)} className="p-2 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 rounded-lg text-slate-600 transition"><IconEdit size={16}/></button>
-                                                    {(e?.code || '') !== 'ADMIN' && <button onClick={()=>deleteEmp(e.code)} className="p-2 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition"><IconTrash size={16}/></button>}
+                                                    <button onClick={()=>setEmpForm(e)} className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition flex items-center gap-1"><IconEdit size={14}/> Edit Nama</button>
+                                                    {(e?.code || '') !== 'ADMIN' && <button onClick={()=>deleteEmp(e.code)} className="p-1.5 bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition"><IconTrash size={16}/></button>}
                                                 </div>
                                             </td>
                                         </tr>
@@ -464,12 +472,12 @@
                     {empForm && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-3xl w-full max-w-xl p-8 shadow-2xl animate-fade">
-                                <h2 className="font-black text-2xl mb-6 border-b pb-4 text-slate-800">{empForm.code ? 'Edit Pekerja' : 'Daftar Pekerja Baru'}</h2>
+                                <h2 className="font-black text-2xl mb-6 border-b pb-4 text-slate-800">{empForm.code ? 'Kemaskini Profil & Nama' : 'Daftar Pekerja Baru'}</h2>
                                 <form onSubmit={saveEmp} className="space-y-5">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                        <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kod Login (Unik)</label><input type="text" disabled={empForm.code !== '' && employees.some(e=>(e?.code || '')===empForm.code)} value={empForm.code} onChange={e=>setEmpForm({...empForm,code:e.target.value})} className="w-full p-3 border-2 border-slate-200 rounded-xl uppercase bg-slate-50 font-mono focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: MZBE012025" required/></div>
+                                        <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Kod Login (Unik)</label><input type="text" disabled={empForm.code !== '' && employees.some(e=>(e?.code || '')===empForm.code)} value={empForm.code} onChange={e=>setEmpForm({...empForm,code:e.target.value.toUpperCase()})} className="w-full p-3 border-2 border-slate-200 rounded-xl uppercase bg-slate-50 font-mono focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: MZBE012025" required/></div>
                                         <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">No. Kad Pengenalan</label><input type="text" value={empForm.ic} onChange={e=>setEmpForm({...empForm,ic:e.target.value})} className="w-full p-3 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: 900101-01-1234"/></div>
-                                        <div className="md:col-span-2"><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Nama Penuh</label><input type="text" value={empForm.name} onChange={e=>setEmpForm({...empForm,name:e.target.value})} className="w-full p-3 border-2 border-slate-200 rounded-xl uppercase focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Nama mengikut IC" required/></div>
+                                        <div className="md:col-span-2"><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Nama Penuh</label><input type="text" value={empForm.name} onChange={e=>setEmpForm({...empForm,name:e.target.value.toUpperCase()})} className="w-full p-3 border-2 border-slate-200 rounded-xl uppercase focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Nama mengikut IC" required/></div>
                                         
                                         <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Jabatan</label><input type="text" value={empForm.dept} onChange={e=>setEmpForm({...empForm,dept:e.target.value})} className="w-full p-3 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: Pengeluaran" required/></div>
                                         <div><label className="text-xs font-bold text-slate-500 mb-1 block uppercase tracking-wider">Jawatan</label><input type="text" value={empForm.position} onChange={e=>setEmpForm({...empForm,position:e.target.value})} className="w-full p-3 border-2 border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-none transition" placeholder="Cth: Operator Mesin" required/></div>
@@ -514,7 +522,7 @@
 
             const showToast = useCallback((msg, type = 'info') => {
                 setToast({ msg, type });
-                setTimeout(() => setToast(null), 3000);
+                setTimeout(() => setToast(null), 4000);
             }, []);
 
             // 1. AUTH FIRST
@@ -568,18 +576,23 @@
                                     { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699' },
                                     { code: 'ADMIN', name: 'SUPER ADMIN', dept: 'Pengurusan', position: 'Admin', basic: 0, ic: '' }
                                 ];
-                                defaultEmps.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e));
+                                defaultEmps.forEach(e => setDoc(doc(db, ...bPath, 'employees', e.code), e).catch(err => {}));
                             } else { 
                                 setEmployees(emps); 
                                 setIsDbReady(true); 
                             }
                         },
-                        err => console.error("Permission Denied (Emp):", err)
+                        err => {
+                            console.error("Permission Denied (Emp):", err);
+                            showToast("Sila betulkan 'Rules' di Firestore.", "error");
+                        }
                     );
                     
                     unsubscribeSal = onSnapshot(collection(db, ...bPath, 'salaries'), 
                         snap => setSalaries(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
-                        err => console.error("Permission Denied (Sal):", err)
+                        err => {
+                            console.error("Permission Denied (Sal):", err);
+                        }
                     );
                 } catch(error) {
                     console.error("Setup Listeners Failed:", error);
@@ -589,7 +602,7 @@
                     if(unsubscribeEmp) unsubscribeEmp(); 
                     if(unsubscribeSal) unsubscribeSal(); 
                 };
-            }, [user, db]);
+            }, [user, db, showToast]);
 
             if (!currentUser) return <LoginScreen employees={employees} onLogin={setCurrentUser} isReady={isDbReady} showToast={showToast} />;
 
