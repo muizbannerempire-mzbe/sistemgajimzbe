@@ -35,6 +35,7 @@
 <body class="h-full bg-slate-100 uppercase">
   <div id="app" class="h-full overflow-auto flex flex-col">
     
+    <!-- Skrin Log Masuk -->
     <div id="login-screen" class="min-h-full flex items-center justify-center p-4 gradient-bg">
       <div class="glass rounded-2xl card-shadow p-8 w-full max-w-md animate-fade">
         <div class="text-center mb-8">
@@ -59,6 +60,7 @@
       </div>
     </div>
 
+    <!-- Papan Pemuka -->
     <div id="dashboard" class="hidden min-h-full flex flex-col flex-1">
       <header class="gradient-bg text-white px-6 py-4 shadow-lg z-30">
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
@@ -87,13 +89,15 @@
         </div>
       </div>
 
+      <!-- Paparan Urusan Gaji -->
       <div id="view-salary" class="flex-1 flex flex-col animate-fade">
         <div class="bg-white shadow-sm border-b">
           <div class="max-w-7xl mx-auto px-6 py-4">
             <div class="flex flex-wrap items-center gap-4">
               <div class="flex gap-2">
                 <select id="filter-year" onchange="applyFilters()" class="px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none bg-slate-50 font-bold">
-                  </select>
+                  <!-- Pilihan tahun dijana dari script -->
+                </select>
                 <select id="filter-month" onchange="applyFilters()" class="px-4 py-2 border-2 border-slate-200 rounded-lg focus:border-amber-500 focus:outline-none bg-slate-50 font-bold">
                   <option value="1">JANUARI</option><option value="2">FEBRUARI</option><option value="3">MAC</option>
                   <option value="4">APRIL</option><option value="5">MEI</option><option value="6">JUN</option>
@@ -116,7 +120,8 @@
                <p class="text-slate-500 font-semibold tracking-wider">MEMUAT TURUN DATA DARI AWAN...</p>
             </div>
             <div id="salary-list" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              </div>
+              <!-- Kad Gaji akan di Render di Sini -->
+            </div>
             <div id="no-records" class="hidden text-center py-20 border-2 border-dashed border-slate-300 rounded-3xl bg-white">
               <h3 class="text-xl font-bold text-slate-600 tracking-wide mb-2">TIADA REKOD GAJI BULAN INI</h3>
               <p class="text-slate-400 font-medium">SILA KLIK 'JANA DATA STANDARD' UNTUK MEMULAKAN.</p>
@@ -125,6 +130,7 @@
         </main>
       </div>
 
+      <!-- Paparan Direktori Pekerja -->
       <div id="view-admin" class="hidden flex-1 p-6 bg-slate-100 flex-col animate-fade">
         <div class="max-w-7xl mx-auto w-full bg-white rounded-3xl shadow-sm border overflow-hidden">
             <div class="p-6 bg-slate-50 border-b flex justify-between items-center">
@@ -137,13 +143,15 @@
                         <tr><th class="p-4">KOD</th><th class="p-4">NAMA PEKERJA</th><th class="p-4">JAWATAN / JABATAN</th><th class="p-4">GAJI ASAS</th><th class="p-4 text-right">TINDAKAN</th></tr>
                     </thead>
                     <tbody id="directory-list" class="divide-y divide-slate-100">
-                        </tbody>
+                        <!-- Render dari JS -->
+                    </tbody>
                 </table>
             </div>
         </div>
       </div>
     </div>
 
+    <!-- Modal Form (Borang Tambah/Edit Gaji) -->
     <div id="modal-form" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90%] overflow-auto animate-fade card-shadow">
         <div class="sticky top-0 bg-white px-6 py-5 border-b flex items-center justify-between z-10 shadow-sm">
@@ -156,7 +164,8 @@
             <div>
               <label class="block text-xs font-bold text-slate-500 mb-2">PILIH PEKERJA</label>
               <select id="form-employee" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:border-amber-500 focus:outline-none bg-slate-50 font-bold">
-                </select>
+                <!-- Dijana dari JS -->
+              </select>
             </div>
             <div class="grid grid-cols-2 gap-3">
               <div>
@@ -181,7 +190,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">GAJI ASAS (RM)</label>
-                <input type="number" id="form-basic" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 font-bold text-slate-800 outline-none" value="0" step="0.01">
+                <input type="number" id="form-basic" oninput="calculateDeduction()" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 font-bold text-slate-800 outline-none" value="0" step="0.01">
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">ELAUN BIASA (RM)</label>
@@ -194,10 +203,6 @@
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">BONUS (RM)</label>
                 <input type="number" id="form-bonus" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 font-bold text-slate-800 outline-none" value="0" step="0.01">
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-red-500 mb-1">BAYARAN PENDAHULUAN (RM)</label>
-                <input type="number" id="form-advance" class="w-full px-4 py-2.5 border-2 border-red-200 rounded-lg focus:border-red-500 font-bold text-red-600 bg-red-50 outline-none" value="0" step="0.01">
               </div>
             </div>
           </div>
@@ -217,11 +222,15 @@
           </div>
 
           <div class="border-t-2 border-slate-100 pt-5">
-            <h3 class="font-extrabold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">📉</span> POTONGAN</h3>
+            <h3 class="font-extrabold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">📉</span> POTONGAN & PENDAHULUAN</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">KWSP (RM)</label>
                 <input type="number" id="form-kwsp" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 font-bold text-slate-800 outline-none" value="0" step="0.01">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-red-500 mb-1">BAYARAN PENDAHULUAN (RM)</label>
+                <input type="number" id="form-advance" class="w-full px-4 py-2.5 border-2 border-red-200 rounded-lg focus:border-red-500 font-bold text-red-600 bg-red-50 outline-none" value="0" step="0.01">
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">SOCSO (RM)</label>
@@ -239,11 +248,15 @@
           </div>
 
           <div class="border-t-2 border-slate-100 pt-5">
-            <h3 class="font-extrabold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">🚫</span> CUTI TANPA GAJI</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h3 class="font-extrabold text-slate-800 mb-4 flex items-center gap-2"><span class="text-amber-500">🚫</span> CUTI & KEHADIRAN</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">HARI BEKERJA SEBULAN</label>
+                <input type="number" id="form-standard-days" oninput="calculateDeduction()" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 font-bold text-slate-800 outline-none" value="26" min="1">
+              </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">HARI CUTI TANPA GAJI</label>
-                <input type="number" id="form-unpaid-days" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 font-bold text-slate-800 bg-slate-50 outline-none" value="0" min="0">
+                <input type="number" id="form-unpaid-days" oninput="calculateDeduction()" class="w-full px-4 py-2.5 border-2 border-slate-200 rounded-lg focus:border-amber-500 font-bold text-slate-800 bg-slate-50 outline-none" value="0" min="0">
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 mb-1">POTONGAN CUTI (RM)</label>
@@ -260,6 +273,7 @@
       </div>
     </div>
 
+    <!-- Modal Profil Pekerja -->
     <div id="modal-emp" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl animate-fade">
             <h2 id="emp-modal-title" class="font-black text-2xl mb-6 border-b pb-4 text-slate-800">PROFIL PEKERJA</h2>
@@ -299,6 +313,7 @@
         </div>
     </div>
 
+    <!-- Delete Confirmation Modal -->
     <div id="modal-delete" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div class="bg-white rounded-3xl w-full max-w-md animate-fade p-8 text-center card-shadow">
         <div class="w-20 h-20 mx-auto mb-5 bg-red-100 rounded-full flex items-center justify-center shadow-inner">
@@ -313,6 +328,7 @@
       </div>
     </div>
 
+    <!-- Modal Kemaskini IC -->
     <div id="modal-ic" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div class="bg-white rounded-2xl w-full max-w-md animate-fade card-shadow">
         <div class="px-6 py-5 border-b-2 border-slate-100 flex items-center justify-between">
@@ -331,8 +347,10 @@
       </div>
     </div>
 
+    <!-- Print Area -->
     <div id="print-area" class="hidden"></div>
 
+    <!-- Toast Notification -->
     <div id="toast" class="hidden fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] z-50 animate-fade font-bold tracking-wide border-l-4 border-white"></div>
   </div>
 
@@ -355,26 +373,13 @@
     let unsubscribeSnapshot = null;
     let unsubscribeEmp = null;
 
-    // Senarai Default (Penyelamat jika database kosong)
-    const EMPLOYEES = [
-      { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'OPERASI', position: 'PENGURUS ORDER LUAR', basic: 2100 },
-      { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'OPERASI', position: 'PENGURUS SHOPEE', basic: 2300 },
-      { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'OPERASI', position: 'PENGURUS TIKTOK', basic: 2300 },
-      { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'PENGELUARAN', position: 'PEGAWAI OPERASI PENGELUARAN', basic: 2000 },
-      { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'PENGELUARAN', position: 'OPERATOR MESIN', basic: 1800 },
-      { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'PENGELUARAN', position: 'OPERATOR MESIN', basic: 1800 },
-      { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S.HAMID', dept: 'PENGELUARAN', position: 'OPERATOR MESIN', basic: 1700 },
-      { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'PENGELUARAN', position: 'OPERATOR MESIN', basic: 1700 },
-      { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'PEMASARAN', position: 'PEGAWAI PEMASARAN', basic: 1700 }
-    ];
-
     const MONTHS = ['', 'JANUARI', 'FEBRUARI', 'MAC', 'APRIL', 'MEI', 'JUN', 'JULAI', 'OGOS', 'SEPTEMBER', 'OKTOBER', 'NOVEMBER', 'DISEMBER'];
 
     let currentUser = null;
     let isAdmin = false;
     let allRecords = [];
     let filteredRecords = [];
-    let dynamicEmployees = [...EMPLOYEES]; 
+    let dynamicEmployees = []; 
     let deleteTarget = null;
     let isDataLoaded = false;
 
@@ -415,26 +420,17 @@
     function setupRealtimeListener() {
       if (!firebaseUser) return;
       
-      // 1. Dengar Rekod Pekerja (Direktori)
       const empRef = collection(db, 'artifacts', appId, 'public', 'data', 'employees');
       unsubscribeEmp = onSnapshot(empRef, (snapshot) => {
-          if (snapshot.empty) {
-              // Jika kosong, tolak data lalai ke Firebase
-              EMPLOYEES.forEach(emp => {
-                  setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', emp.code), emp);
-              });
-          } else {
-              dynamicEmployees = [];
-              snapshot.forEach(doc => dynamicEmployees.push(doc.data()));
-              updateEmployeeDropdown();
-              if (document.getElementById('view-admin') && !document.getElementById('view-admin').classList.contains('hidden')) {
-                  renderDirectory();
-              }
-              if(isDataLoaded) renderSalaryList(); 
+          dynamicEmployees = [];
+          snapshot.forEach(doc => dynamicEmployees.push(doc.data()));
+          updateEmployeeDropdown();
+          if (document.getElementById('view-admin') && !document.getElementById('view-admin').classList.contains('hidden')) {
+              renderDirectory();
           }
+          if(isDataLoaded) renderSalaryList(); 
       });
 
-      // 2. Dengar Rekod Gaji
       const recordsRef = collection(db, 'artifacts', appId, 'public', 'data', 'salary_records');
       unsubscribeSnapshot = onSnapshot(recordsRef, (snapshot) => {
         allRecords = [];
@@ -454,16 +450,13 @@
       const formYearSelect = document.getElementById('form-year');
       const currentYear = new Date().getFullYear();
       
-      // Pilihan tahun dipanjangkan ke 2030
       for (let y = 2024; y <= 2030; y++) {
         yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
         formYearSelect.innerHTML += `<option value="${y}">${y}</option>`;
       }
       formYearSelect.value = currentYear;
-      
       document.getElementById('filter-year').value = currentYear.toString();
       document.getElementById('filter-month').value = (new Date().getMonth() + 1).toString();
-      updateEmployeeDropdown();
     }
 
     function updateEmployeeDropdown() {
@@ -485,6 +478,15 @@
       });
       applyFilters();
     }
+
+    // --- Pengiraan Potongan Auto ---
+    window.calculateDeduction = function() {
+        const basic = parseFloat(document.getElementById('form-basic').value) || 0;
+        const stdDays = parseInt(document.getElementById('form-standard-days').value) || 26;
+        const unpaidDays = parseInt(document.getElementById('form-unpaid-days').value) || 0;
+        const deduction = (basic / stdDays) * unpaidDays;
+        document.getElementById('form-unpaid-deduction').value = deduction.toFixed(2);
+    };
 
     // --- Tabs Logic ---
     window.switchTab = function(tab) {
@@ -585,7 +587,7 @@
       renderSalaryList();
     }
 
-    // --- Render Cards ---
+    // --- Render Cards Gaji ---
     function renderSalaryList() {
       const container = document.getElementById('salary-list');
       const noRecords = document.getElementById('no-records');
@@ -613,14 +615,19 @@
         const otAmount = (record.ot_hours || 0) * (record.ot_rate || 10);
         const grossIncome = (record.basic_salary || 0) + totalAllowance + otAmount + (record.bonus || 0);
         
-        const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0);
+        // POTONGAN: KWSP + SOCSO + EIS + LAIN + CUTI + PENDAHULUAN
+        const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0) + (record.advance_payment || 0);
         const netSalary = grossIncome - totalDeductions;
         
         const emp = dynamicEmployees.find(e => e.code === record.employee_code) || {};
+        
+        const stdDays = record.standard_working_days || 26;
+        const unpaidDays = record.unpaid_leave_days || 0;
+        const workingDays = stdDays - unpaidDays;
 
         return `
           <div class="bg-white rounded-3xl card-shadow p-6 animate-fade border border-slate-100 uppercase transition-all hover:shadow-[0_15px_50px_rgba(0,0,0,0.12)] hover:-translate-y-1">
-            <div class="flex flex-wrap items-start justify-between gap-4 mb-5">
+            <div class="flex flex-wrap items-start justify-between gap-4 mb-3">
               <div class="overflow-hidden">
                 <h3 class="text-lg font-black text-slate-800 tracking-wide truncate">${(emp.name || record.employee_name || 'TIDAK DIKETAHUI').toUpperCase()}</h3>
                 <p class="text-sm font-bold text-amber-600 mt-1">${MONTHS[record.month]} ${record.year}</p>
@@ -634,6 +641,10 @@
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 </button>
               </div>
+            </div>
+
+            <div class="flex justify-center text-xs text-slate-600 mb-4 bg-slate-50 p-2.5 rounded-xl font-extrabold border border-slate-100">
+                <span>HARI BEKERJA: ${workingDays} / ${stdDays} HARI</span>
             </div>
             
             <div class="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-2xl p-5 mb-5 shadow-sm border border-emerald-100/50 text-center">
@@ -765,6 +776,7 @@
       const inputs = ['form-basic', 'form-allowance', 'form-oil', 'form-bonus', 'form-advance', 'form-ot-hours', 'form-kwsp', 'form-socso', 'form-eis', 'form-other', 'form-unpaid-days', 'form-unpaid-deduction'];
       inputs.forEach(id => document.getElementById(id).value = 0);
       document.getElementById('form-ot-rate').value = 10;
+      document.getElementById('form-standard-days').value = 26;
       
       document.getElementById('modal-form').classList.remove('hidden');
     };
@@ -789,6 +801,7 @@
       document.getElementById('form-socso').value = record.socso || 0;
       document.getElementById('form-eis').value = record.eis || 0;
       document.getElementById('form-other').value = record.other_deductions || 0;
+      document.getElementById('form-standard-days').value = record.standard_working_days || 26;
       document.getElementById('form-unpaid-days').value = record.unpaid_leave_days || 0;
       document.getElementById('form-unpaid-deduction').value = record.unpaid_leave_deduction || 0;
       
@@ -799,22 +812,41 @@
       document.getElementById('modal-form').classList.add('hidden');
     };
 
-    // --- Jana Data Standard ---
+    // --- Jana Data Standard (DATA PENUH TERMASUK POTONGAN & HARI) ---
     window.importStandardData = async function() {
         if (!firebaseUser) return;
         const targetYear = document.getElementById('filter-year').value || new Date().getFullYear();
         const targetMonth = document.getElementById('filter-month').value || (new Date().getMonth() + 1);
 
-        if(!window.confirm(`Jana senarai pekerja & data gaji standard untuk bulan ${MONTHS[parseInt(targetMonth)]} ${targetYear}?`)) return;
+        if(!window.confirm(`Jana senarai pekerja & data gaji untuk bulan ${MONTHS[parseInt(targetMonth)]} ${targetYear}?\n\nPerhatian: Data spesifik dari maklumat anda akan dimasukkan.`)) return;
         
         const btn = document.getElementById('btn-import');
         btn.disabled = true;
         btn.innerHTML = `<div class="loader" style="border-width:3px;width:16px;height:16px;"></div> MENJANA...`;
 
+        // Susunan Data Tepat Berdasarkan Prompt Pengguna
+        const febData = [
+          { code: 'MZBE012024', name: 'AHMAD BUKHARIE BIN FAIZAL NORHADI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '040421110053', advance: 700, kwsp: 198, unpaid_days: 0, unpaid_deduct: 0 },
+          { code: 'MZBE092022', name: 'AMMAR ZAKWAN BIN DAUD', dept: 'Operasi', position: 'Pengurus Order Luar', basic: 2100, ic: '980416036979', advance: 800, kwsp: 231, unpaid_days: 0, unpaid_deduct: 0 },
+          { code: 'MZBE102022', name: 'ATHIRAH BINTI MOHD ZEIN', dept: 'Pengeluaran', position: 'Pegawai Operasi Pengeluaran', basic: 2000, ic: '000917110384', advance: 800, kwsp: 220, unpaid_days: 0, unpaid_deduct: 0 },
+          { code: 'MZBE072022', name: 'NUR MAISARAH BINTI AHMAD RIZAL', dept: 'Operasi', position: 'Pengurus Shopee', basic: 2300, ic: '971017385034', advance: 1000, kwsp: 253, unpaid_days: 0, unpaid_deduct: 0 },
+          { code: 'MZBE022024', name: 'NURLAILI BINTI ZAHARI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1800, ic: '', advance: 0, kwsp: 198, unpaid_days: 0, unpaid_deduct: 0 },
+          { code: 'MZBE082022', name: 'WAN ADIB ASHRAF BIN AB WAHAB', dept: 'Operasi', position: 'Pengurus TikTok', basic: 2300, ic: '000417080975', advance: 1000, kwsp: 253, unpaid_days: 4, unpaid_deduct: 353.84 },
+          { code: 'MZBE022025', name: 'ABDUL RAHMAN BIN S. HAMID', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '070909030855', advance: 700, kwsp: 187, unpaid_days: 0, unpaid_deduct: 0 },
+          { code: 'MZBE032025', name: 'MUHAMMAD AIMAN BIN MOHD ZULKIFLI', dept: 'Pengeluaran', position: 'Operator Mesin', basic: 1700, ic: '010815110403', advance: 700, kwsp: 187, unpaid_days: 0, unpaid_deduct: 0 },
+          { code: 'MZBE042025', name: 'FATIN AMIERA BINTI RAZIHA', dept: 'Pemasaran', position: 'Pegawai Pemasaran', basic: 1700, ic: '930905115074', advance: 0, kwsp: 187, unpaid_days: 12, unpaid_deduct: 784.80 },
+          { code: 'MZBEBOSS001', name: 'MUIZZUDDIN BIN AB.LLAH', dept: 'Pentadbiran', position: 'Pengurus Besar', basic: 3500, ic: '990331037699', advance: 0, kwsp: 352, unpaid_days: 0, unpaid_deduct: 0 }
+        ];
+
         try {
-            for (const d of dynamicEmployees) {
-                if (d.code === 'ADMIN') continue;
+            for (const d of febData) {
+                // 1. Masukkan ke Direktori
+                const empProfile = {
+                    code: d.code, name: d.name, ic: d.ic, dept: d.dept, position: d.position, basic: d.basic
+                };
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'employees', d.code), empProfile, { merge: true });
                 
+                // 2. Masukkan ke Rekod Gaji
                 const recordId = `sal_${d.code}_${targetYear}_${targetMonth}`;
                 const recordData = {
                     employee_code: d.code,
@@ -830,10 +862,11 @@
                     ot_hours: 0,
                     ot_rate: 10,
                     bonus: 0,
-                    advance_payment: 0,
-                    unpaid_leave_days: 0,
-                    unpaid_leave_deduction: 0,
-                    kwsp: (d.basic * 0.11) || 0,
+                    advance_payment: d.advance || 0,
+                    standard_working_days: 26,
+                    unpaid_leave_days: d.unpaid_days || 0,
+                    unpaid_leave_deduction: d.unpaid_deduct || 0,
+                    kwsp: d.kwsp || 0,
                     socso: 0,
                     eis: 0,
                     other_deductions: 0,
@@ -884,6 +917,7 @@
         ot_rate: parseFloat(document.getElementById('form-ot-rate').value) || 10,
         bonus: parseFloat(document.getElementById('form-bonus').value) || 0,
         advance_payment: parseFloat(document.getElementById('form-advance').value) || 0,
+        standard_working_days: parseInt(document.getElementById('form-standard-days').value) || 26,
         unpaid_leave_days: parseInt(document.getElementById('form-unpaid-days').value) || 0,
         unpaid_leave_deduction: parseFloat(document.getElementById('form-unpaid-deduction').value) || 0,
         kwsp: parseFloat(document.getElementById('form-kwsp').value) || 0,
@@ -992,8 +1026,13 @@
       const otAmount = (record.ot_hours || 0) * (record.ot_rate || 10);
       const grossIncome = (record.basic_salary || 0) + totalAllowance + otAmount + (record.bonus || 0);
       
-      const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0);
+      // BAYARAN PENDAHULUAN DIMASUKKAN SEBAGAI POTONGAN SEPENUHNYA
+      const totalDeductions = (record.kwsp || 0) + (record.socso || 0) + (record.eis || 0) + (record.other_deductions || 0) + (record.unpaid_leave_deduction || 0) + (record.advance_payment || 0);
       const netSalary = grossIncome - totalDeductions;
+      
+      const stdDays = record.standard_working_days || 26;
+      const unpaidDays = record.unpaid_leave_days || 0;
+      const workingDays = stdDays - unpaidDays;
 
       return `
         <!DOCTYPE html>
@@ -1052,12 +1091,14 @@
               <div class="info-label">JAWATAN</div>
               <div class="info-value">${(emp.position || record.position || '').toUpperCase()}</div>
             </div>
-            ${record.ic_number ? `
-            <div class="info-box" style="grid-column: span 2;">
+            <div class="info-box">
               <div class="info-label">NO. KAD PENGENALAN</div>
-              <div class="info-value">${record.ic_number.toUpperCase()}</div>
+              <div class="info-value">${record.ic_number ? record.ic_number.toUpperCase() : '-'}</div>
             </div>
-            ` : ''}
+            <div class="info-box">
+              <div class="info-label">HARI BEKERJA SEBENAR</div>
+              <div class="info-value">${workingDays} / ${stdDays} HARI</div>
+            </div>
           </div>
 
           <div class="section">
@@ -1067,7 +1108,6 @@
             ${record.oil_allowance > 0 ? `<div class="row"><span class="row-label">ELAUN MINYAK</span><span class="row-value">RM ${(record.oil_allowance || 0).toFixed(2)}</span></div>` : ''}
             ${record.ot_hours > 0 ? `<div class="row"><span class="row-label">OT (${record.ot_hours || 0} JAM × RM${(record.ot_rate || 10).toFixed(2)})</span><span class="row-value">RM ${otAmount.toFixed(2)}</span></div>` : ''}
             ${record.bonus > 0 ? `<div class="row"><span class="row-label">BONUS</span><span class="row-value">RM ${(record.bonus || 0).toFixed(2)}</span></div>` : ''}
-            ${record.advance_payment > 0 ? `<div class="row"><span class="row-label">BAYARAN PENDAHULUAN</span><span class="row-value highlight">-RM ${(record.advance_payment || 0).toFixed(2)}</span></div>` : ''}
             <div class="row" style="font-weight: 800; border-top: 2px solid #cbd5e1; padding-top: 15px; margin-top: 5px;"><span class="row-label" style="color:#0f172a">JUMLAH PENDAPATAN</span><span class="row-value highlight-green">RM ${grossIncome.toFixed(2)}</span></div>
           </div>
 
@@ -1080,6 +1120,7 @@
             ${record.unpaid_leave_days > 0 ? `
             <div class="row"><span class="row-label">CUTI TANPA GAJI (${record.unpaid_leave_days} HARI)</span><span class="row-value">RM ${(record.unpaid_leave_deduction || 0).toFixed(2)}</span></div>
             ` : ''}
+            ${record.advance_payment > 0 ? `<div class="row"><span class="row-label">BAYARAN PENDAHULUAN (ADVANCE)</span><span class="row-value highlight">RM ${(record.advance_payment || 0).toFixed(2)}</span></div>` : ''}
             <div class="row" style="font-weight: 800; border-top: 2px solid #cbd5e1; padding-top: 15px; margin-top: 5px;"><span class="row-label" style="color:#0f172a">JUMLAH POTONGAN</span><span class="row-value highlight">RM ${totalDeductions.toFixed(2)}</span></div>
           </div>
 
